@@ -164,14 +164,33 @@ export function useKinectraAnalysis(
       let techniqueScore = 100;
 
       if (analysisType === "bowling") {
-        if (elbowAngle < 80) warnings.push("Elbow angle too low");
-        if (spineTilt > 30) warnings.push("Excessive spine tilt");
-        if (shoulderAlignment > 15) warnings.push("Poor shoulder rotation");
+        // Legal extension check (optimal release arm should be almost straight: 165°–180°)
+        const elbowScore = Math.max(0, 100 - Math.max(0, 165 - elbowAngle) * 3);
+        if (elbowAngle < 150) warnings.push("Illegal elbow flexion (Chucking risk)");
+
+        // Front knee brace check (optimal landing knee should be firm: 145°–165°)
+        const kneeScore = Math.max(0, 100 - Math.max(0, 145 - kneeAngle) * 2.5);
+        if (kneeAngle < 130) warnings.push("Collapsed front landing knee");
+
+        // Spine tilt check (optimal lateral lean for shoulder release: 5°–22°)
+        let spineScore = 100;
+        if (spineTilt > 22) {
+          spineScore = Math.max(0, 100 - (spineTilt - 22) * 4);
+          warnings.push("Excessive lateral spine tilt");
+        } else if (spineTilt < 5) {
+          spineScore = 90;
+        }
+
+        // Shoulder alignment check (should rot deviation < 15°)
+        const shoulderScore = Math.max(0, 100 - Math.max(0, shoulderAlignment - 15) * 3.5);
+        if (shoulderAlignment > 25) warnings.push("Poor shoulder rotation");
+
         techniqueScore =
-          balanceScore * 0.25 +
-          Math.max(0, 100 - Math.abs(elbowAngle - 95)) * 0.25 +
-          Math.max(0, 100 - spineTilt * 2) * 0.3 +
-          Math.max(0, 100 - shoulderAlignment * 2) * 0.2;
+          balanceScore * 0.2 +
+          elbowScore * 0.3 +
+          kneeScore * 0.2 +
+          spineScore * 0.2 +
+          shoulderScore * 0.1;
       } else {
         if (kneeAngle < 120) warnings.push("Front knee bent too much");
         if (elbowAngle < 90) warnings.push("Low bat lift");

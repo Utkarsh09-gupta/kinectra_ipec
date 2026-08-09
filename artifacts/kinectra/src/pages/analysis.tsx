@@ -556,12 +556,14 @@ export default function Analysis() {
       
       if (now - lastSpokenTime >= 6000) {
         let alertText = activeWarning;
-        if (activeWarning === "Excessive spine tilt") {
-          alertText = "Keep your spine tall and straight.";
-        } else if (activeWarning === "Elbow angle too low") {
-          alertText = "Elbow is dropping. Keep it at 160 degrees or above at release.";
-        } else if (activeWarning === "Front knee bent too much") {
-          alertText = "Stabilize your front landing leg.";
+        if (activeWarning === "Excessive lateral spine tilt" || activeWarning === "Excessive spine tilt") {
+          alertText = "Keep your spine tall and straight. Avoid tilting sideways.";
+        } else if (activeWarning === "Illegal elbow flexion (Chucking risk)" || activeWarning === "Elbow angle too low") {
+          alertText = "Keep your delivery arm straight. Do not flex your elbow.";
+        } else if (activeWarning === "Collapsed front landing knee" || activeWarning === "Front knee bent too much") {
+          alertText = "Brace your front leg. Do not collapse your landing knee.";
+        } else if (activeWarning === "Poor shoulder rotation") {
+          alertText = "Focus on full shoulder rotation through the crease.";
         } else if (activeWarning === "Head moving excessively") {
           alertText = "Keep your head still, watch the ball.";
         } else if (activeWarning === "Balance unstable") {
