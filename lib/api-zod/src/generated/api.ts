@@ -167,3 +167,37 @@ export const ListSessionsResponseItem = zod.object({
 export const ListSessionsResponse = zod.array(ListSessionsResponseItem)
 
 
+/**
+ * @summary Synthesize text to speech
+ */
+export const SynthesizeSpeechQueryParams = zod.object({
+  "text": zod.coerce.string()
+})
+
+
+/**
+ * @summary Find matching professional pose
+ */
+export const SearchPosesBody = zod.object({
+  "analysisType": zod.enum(['batting', 'bowling']),
+  "poseVector": zod.array(zod.number())
+})
+
+export const SearchPosesResponse = zod.object({
+  "matchName": zod.string(),
+  "similarity": zod.number(),
+  "role": zod.string(),
+  "description": zod.string(),
+  "idealVector": zod.array(zod.number())
+})
+
+
+/**
+ * @summary Seed Qdrant collection with professional poses
+ */
+export const IngestPosesResponse = zod.object({
+  "status": zod.string().optional(),
+  "message": zod.string().optional()
+})
+
+

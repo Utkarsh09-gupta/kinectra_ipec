@@ -476,6 +476,9 @@ export default function Analysis() {
         videoRef.current.srcObject = null;
       }
       cameraInitialisedRef.current = false;
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.analysisMode, config.videoFileUrl]); // intentionally empty — run once on mount
@@ -489,6 +492,60 @@ export default function Analysis() {
 
   // ── Speech Alerts Engine (Uses Smoothed Telemetry) ────────────────
   const lastSpokenRef = useRef<Record<string, number>>({});
+  const audioCacheRef = useRef<Record<string, HTMLAudioElement>>({});
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playSpeechText = (text: string) => {
+    if (isMuted) return;
+
+    // Cancel any currently playing speech audio
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+    }
+
+    setIsSpeaking(true);
+
+    if (audioCacheRef.current[text]) {
+      const audio = audioCacheRef.current[text];
+      currentAudioRef.current = audio;
+      audio.currentTime = 0;
+      audio.play().catch((err) => {
+        console.warn("Failed to play cached audio:", err);
+        setIsSpeaking(false);
+      });
+      audio.onended = () => setIsSpeaking(false);
+      audio.onerror = () => setIsSpeaking(false);
+      return;
+    }
+
+    // Generate url for Rime backend proxy
+    const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+    const audioUrl = `${API_BASE_URL}/api/session/speech/synthesize?text=${encodeURIComponent(text)}`;
+    const audio = new Audio(audioUrl);
+    currentAudioRef.current = audio;
+    audioCacheRef.current[text] = audio;
+
+    audio.play().then(() => {
+      audio.onended = () => setIsSpeaking(false);
+      audio.onerror = () => setIsSpeaking(false);
+    }).catch((err) => {
+      console.warn("Rime speech playing failed, falling back to window.speechSynthesis:", err);
+      // Fallback to local browser synthesis
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.05;
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => setIsSpeaking(false);
+        window.speechSynthesis.speak(utterance);
+      } else {
+        setIsSpeaking(false);
+      }
+    });
+  };
+
   useEffect(() => {
     if (smoothedMetrics.warnings && smoothedMetrics.warnings.length > 0) {
       const activeWarning = smoothedMetrics.warnings[0];
@@ -496,31 +553,22 @@ export default function Analysis() {
       const lastSpokenTime = lastSpokenRef.current[activeWarning] || 0;
       
       if (now - lastSpokenTime >= 6000) {
-        if ("speechSynthesis" in window && !isMuted) {
-          window.speechSynthesis.cancel();
-          
-          let alertText = activeWarning;
-          if (activeWarning === "Excessive spine tilt") {
-            alertText = "Keep your spine tall and straight.";
-          } else if (activeWarning === "Elbow angle too low") {
-            alertText = "Elbow is dropping. Keep it at 160 degrees or above at release.";
-          } else if (activeWarning === "Front knee bent too much") {
-            alertText = "Stabilize your front landing leg.";
-          } else if (activeWarning === "Head moving excessively") {
-            alertText = "Keep your head still, watch the ball.";
-          } else if (activeWarning === "Balance unstable") {
-            alertText = "Focus on balance and plant your landing stride.";
-          }
-          
-          setSpokenText(alertText);
-          const utterance = new SpeechSynthesisUtterance(alertText);
-          utterance.rate = 1.05;
-          utterance.onstart = () => setIsSpeaking(true);
-          utterance.onend = () => setIsSpeaking(false);
-          utterance.onerror = () => setIsSpeaking(false);
-          window.speechSynthesis.speak(utterance);
-          lastSpokenRef.current[activeWarning] = now;
+        let alertText = activeWarning;
+        if (activeWarning === "Excessive spine tilt") {
+          alertText = "Keep your spine tall and straight.";
+        } else if (activeWarning === "Elbow angle too low") {
+          alertText = "Elbow is dropping. Keep it at 160 degrees or above at release.";
+        } else if (activeWarning === "Front knee bent too much") {
+          alertText = "Stabilize your front landing leg.";
+        } else if (activeWarning === "Head moving excessively") {
+          alertText = "Keep your head still, watch the ball.";
+        } else if (activeWarning === "Balance unstable") {
+          alertText = "Focus on balance and plant your landing stride.";
         }
+        
+        setSpokenText(alertText);
+        playSpeechText(alertText);
+        lastSpokenRef.current[activeWarning] = now;
       }
     } else {
       // Optimal posture periodic verification comment
@@ -529,15 +577,7 @@ export default function Analysis() {
       if (now - lastSpokenTime >= 12000 && !isModelLoading && hasCameraPermission) {
         const text = "Optimal mechanics detected. Keep maintaining this posture.";
         setSpokenText(text);
-        if ("speechSynthesis" in window && !isMuted) {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.rate = 1.05;
-          utterance.onstart = () => setIsSpeaking(true);
-          utterance.onend = () => setIsSpeaking(false);
-          utterance.onerror = () => setIsSpeaking(false);
-          window.speechSynthesis.speak(utterance);
-        }
+        playSpeechText(text);
         lastSpokenRef.current["optimal"] = now;
       }
     }

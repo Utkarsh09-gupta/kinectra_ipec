@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRoute, Link } from "wouter";
-import { ArrowLeft, Download, Award, BarChart3, Target, Activity, ShieldAlert, Calendar, Mic, Send, Volume2, Lock } from "lucide-react";
+import { ArrowLeft, Download, Award, BarChart3, Target, Activity, ShieldAlert, Calendar, Mic, Send, Volume2, Lock, Sparkles } from "lucide-react";
 import { useGetSession, getGetSessionQueryKey, useListSessions } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
 
@@ -381,6 +381,8 @@ export default function Results() {
   const { data: historySessions } = useListSessions();
   const [prevSnapshot, setPrevSnapshot] = useState<any>(null);
   const [prevScore, setPrevScore] = useState<number>(74);
+  const [poseMatch, setPoseMatch] = useState<any>(null);
+  const [isSearchingPose, setIsSearchingPose] = useState(false);
 
   const { data: session, isLoading, isError } = useGetSession(sessionId || "", {
     query: {
@@ -421,6 +423,46 @@ export default function Results() {
     }
   }, [historySessions, session]);
 
+  useEffect(() => {
+    if (session && currentSnapshots.length > 0) {
+      const snap = currentSnapshots[0];
+      if (snap && snap.metrics) {
+        const fetchPoseMatch = async () => {
+          setIsSearchingPose(true);
+          try {
+            const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+            const token = localStorage.getItem("kinectra_token");
+            const res = await fetch(`${API_BASE_URL}/api/poses/search`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify({
+                analysisType: session.analysisType,
+                poseVector: [
+                  snap.metrics.elbowAngle || 0,
+                  snap.metrics.spineTilt || 0,
+                  snap.metrics.kneeAngle || 0,
+                  snap.metrics.shoulderAlignment || 0
+                ]
+              })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              setPoseMatch(data);
+            }
+          } catch (err) {
+            console.error("Failed to fetch pose match from Qdrant:", err);
+          } finally {
+            setIsSearchingPose(false);
+          }
+        };
+        fetchPoseMatch();
+      }
+    }
+  }, [session, currentSnapshots]);
+
   // Initialize Chat welcome and Speech Recognition once session loads
   useEffect(() => {
     if (session) {
@@ -453,13 +495,48 @@ export default function Results() {
     }
   }, [session]);
 
+  const audioCacheRef = useRef<Record<string, HTMLAudioElement>>({});
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+      }
+    };
+  }, []);
+
   const speakText = (text: string) => {
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.02;
-      window.speechSynthesis.speak(utterance);
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
     }
+
+    if (audioCacheRef.current[text]) {
+      const audio = audioCacheRef.current[text];
+      currentAudioRef.current = audio;
+      audio.currentTime = 0;
+      audio.play().catch((err) => {
+        console.warn("Failed to play cached audio:", err);
+      });
+      return;
+    }
+
+    const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+    const audioUrl = `${API_BASE_URL}/api/session/speech/synthesize?text=${encodeURIComponent(text)}`;
+    const audio = new Audio(audioUrl);
+    currentAudioRef.current = audio;
+    audioCacheRef.current[text] = audio;
+
+    audio.play().catch((err) => {
+      console.warn("Rime speech playing failed, falling back to window.speechSynthesis:", err);
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.02;
+        window.speechSynthesis.speak(utterance);
+      }
+    });
   };
 
   const handleSendChat = async (inputMessage?: string) => {
@@ -1198,6 +1275,67 @@ export default function Results() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* C. Pro Player Similarity Match (Qdrant Vector DB) */}
+                {poseMatch && (
+                  <Card className="shadow-sm border-emerald-500/25 bg-emerald-500/5 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 text-[10px] uppercase font-mono font-bold tracking-widest text-emerald-500/80 bg-emerald-500/10 rounded-bl-xl border-l border-b border-emerald-500/20">
+                      ⚡ Qdrant Vector Match
+                    </div>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base font-semibold flex items-center gap-2">
+                        <Sparkles className="h-4.5 w-4.5 text-emerald-500 animate-pulse" />
+                        Professional Player Pose Matcher
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Biomechanics similarity score compared to professional reference vectors.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-2 space-y-4">
+                      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-black/45 p-4 rounded-xl border border-emerald-500/20">
+                        <div className="space-y-1 text-center sm:text-left">
+                          <h4 className="text-lg font-bold text-emerald-400">{poseMatch.matchName}</h4>
+                          <p className="text-xs text-muted-foreground">{poseMatch.role}</p>
+                        </div>
+                        <div className="text-center bg-emerald-500/10 px-4 py-2.5 rounded-xl border border-emerald-500/30">
+                          <span className="text-[10px] text-emerald-400 font-bold block uppercase tracking-wider">Similarity Score</span>
+                          <span className="text-2xl font-black text-emerald-400 font-mono">{(poseMatch.similarity * 100).toFixed(1)}%</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground italic leading-relaxed bg-muted/40 p-3 rounded-lg border">
+                        " {poseMatch.description} "
+                      </p>
+
+                      <div className="space-y-2">
+                        <h5 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Angle Vector Match Detail (4D Distance)</h5>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {[
+                            { label: "Elbow Extension", key: "elbowAngle", index: 0 },
+                            { label: "Spine Tilt", key: "spineTilt", index: 1 },
+                            { label: "Knee Flexion", key: "kneeAngle", index: 2 },
+                            { label: "Shoulder Align", key: "shoulderAlignment", index: 3 }
+                          ].map((metric) => {
+                            const userVal = currentSnapshots[0]?.metrics?.[metric.key] || 0;
+                            const idealVal = poseMatch.idealVector[metric.index];
+                            const diff = Math.abs(userVal - idealVal);
+                            return (
+                              <div key={metric.key} className="bg-muted/30 p-2.5 rounded-xl border space-y-1">
+                                <span className="text-[10px] text-muted-foreground font-medium block truncate">{metric.label}</span>
+                                <div className="flex items-baseline justify-between">
+                                  <span className="text-xs font-bold font-mono">{userVal}°</span>
+                                  <span className="text-[10px] text-emerald-400 font-mono">Ideal: {idealVal}°</span>
+                                </div>
+                                <div className="text-[9px] text-muted-foreground font-mono">
+                                  {diff === 0 ? "Perfect" : `Diff: ${diff}°`}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* B. Biomechanical Progress Metrics */}
                 <Card className="shadow-sm">

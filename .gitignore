@@ -53,3 +53,7 @@ Thumbs.db
 .env.local
 .env.*
 .kinectra_db.json
+
+# Test media
+*.mp3
+

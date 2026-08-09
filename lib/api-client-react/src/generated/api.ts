@@ -22,10 +22,14 @@ import type {
 import type {
   ErrorResponse,
   HealthStatus,
+  IngestPoses200,
+  PoseMatch,
+  PoseSearchInput,
   Session,
   SessionEndInput,
   SessionInput,
-  SessionSummary
+  SessionSummary,
+  SynthesizeSpeechParams
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -414,4 +418,229 @@ export function useListSessions<TData = Awaited<ReturnType<typeof listSessions>>
 
 
 
+
+export const getSynthesizeSpeechUrl = (params: SynthesizeSpeechParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/session/speech/synthesize?${stringifiedParams}` : `/api/session/speech/synthesize`
+}
+
+/**
+ * @summary Synthesize text to speech
+ */
+export const synthesizeSpeech = async (params: SynthesizeSpeechParams, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getSynthesizeSpeechUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSynthesizeSpeechQueryKey = (params?: SynthesizeSpeechParams,) => {
+    return [
+    `/api/session/speech/synthesize`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSynthesizeSpeechQueryOptions = <TData = Awaited<ReturnType<typeof synthesizeSpeech>>, TError = ErrorType<unknown>>(params: SynthesizeSpeechParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof synthesizeSpeech>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSynthesizeSpeechQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof synthesizeSpeech>>> = ({ signal }) => synthesizeSpeech(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof synthesizeSpeech>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type SynthesizeSpeechQueryResult = NonNullable<Awaited<ReturnType<typeof synthesizeSpeech>>>
+export type SynthesizeSpeechQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Synthesize text to speech
+ */
+
+export function useSynthesizeSpeech<TData = Awaited<ReturnType<typeof synthesizeSpeech>>, TError = ErrorType<unknown>>(
+ params: SynthesizeSpeechParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof synthesizeSpeech>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getSynthesizeSpeechQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSearchPosesUrl = () => {
+
+
+
+
+  return `/api/poses/search`
+}
+
+/**
+ * @summary Find matching professional pose
+ */
+export const searchPoses = async (poseSearchInput: PoseSearchInput, options?: RequestInit): Promise<PoseMatch> => {
+
+  return customFetch<PoseMatch>(getSearchPosesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      poseSearchInput,)
+  }
+);}
+
+
+
+
+export const getSearchPosesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof searchPoses>>, TError,{data: BodyType<PoseSearchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof searchPoses>>, TError,{data: BodyType<PoseSearchInput>}, TContext> => {
+
+const mutationKey = ['searchPoses'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof searchPoses>>, {data: BodyType<PoseSearchInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  searchPoses(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SearchPosesMutationResult = NonNullable<Awaited<ReturnType<typeof searchPoses>>>
+    export type SearchPosesMutationBody = BodyType<PoseSearchInput>
+    export type SearchPosesMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Find matching professional pose
+ */
+export const useSearchPoses = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof searchPoses>>, TError,{data: BodyType<PoseSearchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof searchPoses>>,
+        TError,
+        {data: BodyType<PoseSearchInput>},
+        TContext
+      > => {
+      return useMutation(getSearchPosesMutationOptions(options));
+    }
+
+export const getIngestPosesUrl = () => {
+
+
+
+
+  return `/api/poses/ingest`
+}
+
+/**
+ * @summary Seed Qdrant collection with professional poses
+ */
+export const ingestPoses = async ( options?: RequestInit): Promise<IngestPoses200> => {
+
+  return customFetch<IngestPoses200>(getIngestPosesUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getIngestPosesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ingestPoses>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof ingestPoses>>, TError,void, TContext> => {
+
+const mutationKey = ['ingestPoses'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof ingestPoses>>, void> = () => {
+
+
+          return  ingestPoses(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type IngestPosesMutationResult = NonNullable<Awaited<ReturnType<typeof ingestPoses>>>
+
+    export type IngestPosesMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Seed Qdrant collection with professional poses
+ */
+export const useIngestPoses = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ingestPoses>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof ingestPoses>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getIngestPosesMutationOptions(options));
+    }
 

@@ -8,6 +8,10 @@
 
 export * from './errorResponse';
 export * from './healthStatus';
+export * from './ingestPoses200';
+export * from './poseMatch';
+export * from './poseSearchInput';
+export * from './poseSearchInputAnalysisType';
 export * from './session';
 export * from './sessionAnalysisType';
 export * from './sessionDominantHand';
@@ -25,3 +29,4 @@ export * from './sessionSummarySkillLevel';
 export * from './sessionSummaryStatus';
 export * from './snapshot';
 export * from './snapshotMetrics';
+export * from './synthesizeSpeechParams';

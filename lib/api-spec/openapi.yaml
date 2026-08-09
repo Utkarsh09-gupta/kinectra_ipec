@@ -111,6 +111,63 @@ paths:
                 items:
                   $ref: "#/components/schemas/SessionSummary"
 
+  /session/speech/synthesize:
+    get:
+      operationId: synthesizeSpeech
+      tags: [session]
+      summary: Synthesize text to speech
+      parameters:
+        - name: text
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Audio stream binary response
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+
+  /poses/search:
+    post:
+      operationId: searchPoses
+      tags: [session]
+      summary: Find matching professional pose
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PoseSearchInput"
+      responses:
+        "200":
+          description: Matching professional pose details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PoseMatch"
+
+  /poses/ingest:
+    post:
+      operationId: ingestPoses
+      tags: [session]
+      summary: Seed Qdrant collection with professional poses
+      responses:
+        "200":
+          description: Ingestion status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+
 components:
   schemas:
     HealthStatus:
@@ -309,3 +366,39 @@ components:
       properties:
         error:
           type: string
+
+    PoseMatch:
+      type: object
+      required:
+        - matchName
+        - similarity
+        - role
+        - description
+        - idealVector
+      properties:
+        matchName:
+          type: string
+        similarity:
+          type: number
+        role:
+          type: string
+        description:
+          type: string
+        idealVector:
+          type: array
+          items:
+            type: number
+
+    PoseSearchInput:
+      type: object
+      required:
+        - analysisType
+        - poseVector
+      properties:
+        analysisType:
+          type: string
+          enum: [batting, bowling]
+        poseVector:
+          type: array
+          items:
+            type: number

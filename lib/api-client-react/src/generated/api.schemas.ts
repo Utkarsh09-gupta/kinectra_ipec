@@ -171,3 +171,33 @@ export interface ErrorResponse {
   error: string;
 }
 
+export interface PoseMatch {
+  matchName: string;
+  similarity: number;
+  role: string;
+  description: string;
+  idealVector: number[];
+}
+
+export type PoseSearchInputAnalysisType = typeof PoseSearchInputAnalysisType[keyof typeof PoseSearchInputAnalysisType];
+
+
+export const PoseSearchInputAnalysisType = {
+  batting: 'batting',
+  bowling: 'bowling',
+} as const;
+
+export interface PoseSearchInput {
+  analysisType: PoseSearchInputAnalysisType;
+  poseVector: number[];
+}
+
+export type SynthesizeSpeechParams = {
+text: string;
+};
+
+export type IngestPoses200 = {
+  status?: string;
+  message?: string;
+};
+
