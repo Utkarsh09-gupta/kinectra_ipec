@@ -17,6 +17,7 @@ export interface KinectraMetrics {
   balanceScore: number;
   techniqueScore: number;
   warnings: string[];
+  bodyDetected: boolean;
 }
 
 export interface KinectraAnalysisResult {
@@ -36,6 +37,7 @@ const DEFAULT_METRICS: KinectraMetrics = {
   balanceScore: 100,
   techniqueScore: 100,
   warnings: [],
+  bodyDetected: false,
 };
 
 function calculateAngle(a: Vector3D, b: Vector3D, c: Vector3D): number {
@@ -107,7 +109,13 @@ export function useKinectraAnalysis(
 
   const analyzePose = useCallback(
     (landmarks: any[]) => {
-      if (!landmarks || landmarks.length === 0) return;
+      if (!landmarks || landmarks.length === 0) {
+        setMetrics((prev) => ({
+          ...prev,
+          bodyDetected: false
+        }));
+        return;
+      }
       const pose = landmarks[0];
       const isRight = dominantHand === "right";
 
@@ -183,6 +191,7 @@ export function useKinectraAnalysis(
         balanceScore: Math.round(balanceScore),
         techniqueScore: Math.max(0, Math.min(100, Math.round(techniqueScore))),
         warnings,
+        bodyDetected: true,
       });
     },
     [analysisType, dominantHand]

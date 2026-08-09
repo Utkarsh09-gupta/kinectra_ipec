@@ -45,6 +45,7 @@ export default function Analysis() {
     balanceScore: 100,
     techniqueScore: 100,
     warnings: [] as string[],
+    bodyDetected: false,
   });
 
   useEffect(() => {
@@ -66,6 +67,7 @@ export default function Analysis() {
           balanceScore: smoothedBalance,
           techniqueScore: smoothedTechnique,
           warnings: metrics.warnings,
+          bodyDetected: metrics.bodyDetected,
         };
       });
     }
@@ -594,12 +596,14 @@ export default function Analysis() {
   useEffect(() => {
     if (!isModelLoading && hasCameraPermission) {
       accumulateRef.current = setInterval(() => {
-        setFrameCount(f => f + 1);
-        statsRef.current.frames += 1;
-        statsRef.current.postureSum += metricsRef.current.spineTilt > 30 ? 50 : 90;
-        statsRef.current.alignmentSum += metricsRef.current.shoulderAlignment < 10 ? 95 : 60;
-        statsRef.current.stabilitySum += metricsRef.current.balanceScore;
-        statsRef.current.efficiencySum += metricsRef.current.techniqueScore;
+        if (metricsRef.current.bodyDetected) {
+          setFrameCount(f => f + 1);
+          statsRef.current.frames += 1;
+          statsRef.current.postureSum += metricsRef.current.spineTilt > 30 ? 50 : 90;
+          statsRef.current.alignmentSum += metricsRef.current.shoulderAlignment < 10 ? 95 : 60;
+          statsRef.current.stabilitySum += metricsRef.current.balanceScore;
+          statsRef.current.efficiencySum += metricsRef.current.techniqueScore;
+        }
       }, 1000);
     }
     return () => { if (accumulateRef.current) clearInterval(accumulateRef.current); };
