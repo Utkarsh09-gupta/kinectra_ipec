@@ -382,7 +382,7 @@ export default function Results() {
   const [prevSnapshot, setPrevSnapshot] = useState<any>(null);
   const [prevScore, setPrevScore] = useState<number>(74);
   const [poseMatch, setPoseMatch] = useState<any>(null);
-  const [isSearchingPose, setIsSearchingPose] = useState(false);
+const [isSearchingPose, setIsSearchingPose] = useState(false);
 
   const { data: session, isLoading, isError } = useGetSession(sessionId || "", {
     query: {
@@ -391,13 +391,32 @@ export default function Results() {
     }
   });
 
-  const planDays = session
-    ? generateWeeklyPlan(session.overallScore, session.analysisType === "bowling")
-    : [];
-
   const currentSnapshots = (session?.snapshots && session.snapshots.length > 0)
     ? session.snapshots
     : sessionSnapshots;
+
+  const activeSnapshots = (currentSnapshots && currentSnapshots.length > 0)
+    ? currentSnapshots
+    : session
+      ? [
+          {
+            id: "default-fallback",
+            label: "Session Average Base",
+            time: "0s",
+            category: "optimal" as const,
+            metrics: {
+              elbowAngle: session.analysisType === "bowling" ? 165 : 120,
+              spineTilt: session.analysisType === "bowling" ? 18 : 14,
+              kneeAngle: session.analysisType === "bowling" ? 145 : 135,
+              shoulderAlignment: session.analysisType === "bowling" ? 35 : 12
+            }
+          }
+        ]
+      : [];
+
+  const planDays = session
+    ? generateWeeklyPlan(session.overallScore, session.analysisType === "bowling")
+    : [];
 
   useEffect(() => {
     if (historySessions && session) {
@@ -424,8 +443,8 @@ export default function Results() {
   }, [historySessions, session]);
 
   useEffect(() => {
-    if (session && currentSnapshots.length > 0) {
-      const snap = currentSnapshots[0];
+    if (session && activeSnapshots.length > 0) {
+      const snap = activeSnapshots[0];
       if (snap && snap.metrics) {
         const fetchPoseMatch = async () => {
           setIsSearchingPose(true);
@@ -461,7 +480,7 @@ export default function Results() {
         fetchPoseMatch();
       }
     }
-  }, [session, currentSnapshots]);
+  }, [session, activeSnapshots]);
 
   // Initialize Chat welcome and Speech Recognition once session loads
   useEffect(() => {
@@ -1315,7 +1334,7 @@ export default function Results() {
                             { label: "Knee Flexion", key: "kneeAngle", index: 2 },
                             { label: "Shoulder Align", key: "shoulderAlignment", index: 3 }
                           ].map((metric) => {
-                            const userVal = currentSnapshots[0]?.metrics?.[metric.key] || 0;
+                            const userVal = activeSnapshots[0]?.metrics?.[metric.key] || 0;
                             const idealVal = poseMatch.idealVector[metric.index];
                             const diff = Math.abs(userVal - idealVal);
                             return (
