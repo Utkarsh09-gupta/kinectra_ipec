@@ -1,124 +1,81 @@
-# 🏏 Kinectra: Advanced Sports Biomechanics Telemetry
+# Kinectra Labs 🏏
 
-Kinectra is a browser-native, real-time computer vision sports biomechanics analysis platform tailored for cricket batting and bowling coaching. By leveraging deep learning pose estimation directly in the browser, Kinectra provides immediate joint angles, technique scores, and AI-driven coaching telemetry without server-side video latency.
-
----
-
-## 🚀 Core Features
-
-### 1. Dual Analysis Modes
-*   **Live Webcam Analysis**: Browser-native real-time skeletal tracking utilizing webcams with natural mirror-image rendering.
-*   **Pre-recorded Video Upload**: Drag & Drop uploader supporting MP4/MOV/AVI files up to 100MB. Processes video frames locally to preserve original player dominant-hand orientations (no mirroring).
-
-### 2. Live Biomechanical Telemetry
-*   **Joint Angles**: Real-time vector-based calculation of elbow extension, knee flexion, spine tilt, and shoulder alignment.
-*   **Audio Coaching Alerts**: Dynamic audio alerts spoken in real-time when technique thresholds break down (e.g., *"Excessive spine tilt"*).
-*   **AI Coach Mute Control**: Toggle audio coaching on/off with persistent browser session storage.
-
-### 3. Interactive Progress Tracker & Snapshots
-*   **7-Day Performance SVG Chart**: Inline gradient line charts plotting athlete score improvements.
-*   **Baseline Variance Analysis**: Comparison tables highlighting angle deviations from professional benchmarks.
-*   **Inflection Point Snapshots**: Freeze-frame captures at peak delivery and stance movements paired with joint metric grids.
-*   **Permanent Cloud Storage**: WebP video frame snapshots are permanently serialized as base64 JSON records inside the cloud database, enabling comparison comparisons (e.g., *"Today"* vs. *"7 Days Ago"*) that persist across sessions.
-*   **Aesthetic Sport Silhouettes**: High-fidelity batting (front-foot cover drive) and bowling (delivery release stride) vector silhouettes display as glowing neon fallbacks when no database snapshots are available.
-
-### 4. Advanced AI Reporting
-*   Saves telemetry data and routes snapshots to the **Google Gemini API** (`gemini-2.5-flash` model) to generate real-time biomechanical technique reports and actionable coaching summaries.
-
-### 5. Multi-Tier Pricing
-*   **Free Plan** (₹0): Real-time analysis with temporary memory storage.
-*   **Pro Athlete** (₹199/month): Permanent cloud storage, progress tracking, and Gemini AI reports.
-*   **Plus Plan** (₹3,999/month): Multiple athlete dashboards and coach overlay feedback.
-*   **Enterprise** (Custom): Multi-angle synchronization and custom academy portals.
+> **One-Sentence Claim:** Kinectra is a real-time, voice-guided biomechanics coaching agent that extracts skeletal landmarks, evaluates posture safety, and uses Qdrant Cloud vector search to match athletic form against professional benchmarks.
 
 ---
 
-## 🛠️ Technology Stack
+## 1. The Problem
+During high-intensity sports training (like cricket nets), athletes cannot look at a laptop screen or interact with a keyboard. If their posture collapses (e.g., knee collapsing on landing or elbow bending illegally), they risk repetitive stress injuries and poor power transfer.
 
-*   **Monorepo Manager**: `pnpm` Workspaces
-*   **Frontend**: React (TypeScript) + Vite + Tailwind CSS + Framer Motion
-*   **Pose Engine**: Google MediaPipe Vision Tasks (runs on WebAssembly & WebGPU/WebGL)
-*   **Backend API**: Node.js + Express 5
-*   **Database & ORM**: PostgreSQL (Neon Serverless) + Drizzle ORM
-*   **LLM Integration**: Google Gemini API (`gemini-2.5-flash` model)
-*   **API Codegen**: Orval (OpenAPI yaml source of truth)
+**Kinectra** solves this by providing a **hands-free, real-time voice coach (Coach Aryan)**. By running low-latency computer vision in the browser and expressive Rime Speech feedback, the athlete receives immediate spoken biomechanical corrections while practicing.
 
 ---
 
-## 📁 Workspace Architecture
+## 2. Architecture & Data Flow
 
-```text
-├── artifacts/
-│   ├── kinectra/             # Vite + React Frontend App
-│   │   └── src/
-│   │       ├── components/   # UI elements (Branded hexagon logo, Navbar, Footer)
-│   │       ├── contexts/     # Session context (athlete name, uploaded video url)
-│   │       ├── hooks/        # use-kinectra-analysis (MediaPipe skeleton tracking)
-│   │       └── pages/        # Home, Auth, Setup, Analysis, Results
-│   └── api-server/           # Node.js + Express API Server
-│       └── src/
-│           ├── routes/       # Auth (JWT log-ins), Session (Gemini completions)
-│           └── utils/        # JWT utilities, Database connectors
-├── lib/
-│   ├── db/                   # Drizzle database configurations and schema
-│   ├── api-spec/             # OpenAPI spec definitions (YAML source of truth)
-│   ├── api-client-react/     # Generated API React query hooks (via Orval)
-│   └── api-zod/              # Generated Zod validation schemas (via Orval)
+```mermaid
+graph TD
+    A[Webcam Feed / Player Frame] --> B[MediaPipe Landmarker SDK]
+    B --> C[3D Joint Angle Extraction]
+    C --> D[Real-time Score & Warning Engine]
+    D -->|Post-Flexion Capture| E[Skeletal Pose Vector [4D]]
+    D -->|Form Deviation Trigger| F[Rime TTS backend /api/speech/synthesize]
+    F -->|Binary MP3 Stream| G[Coach Aryan Voice Alert]
+    E -->|Session End| H[Qdrant Cloud Similarity Search]
+    H -->|Cosine Similarity Match| I[Pro Player Pose Matcher Card]
 ```
 
 ---
 
-## ⚙️ Local Development Setup
+## 3. Technology Anchor
 
-### 1. Prerequisites
-Ensure you have **Node.js v24+** and **pnpm** installed globally:
-```bash
-npm install -g pnpm
-```
+*   **Voice Engine (Rime AI):** Uses the fast, conversational **`ursa` voice on the `coda` model** via a proxy backend endpoint to generate realistic vocal alerts and clear up-and-down pitch delivery.
+*   **Vector Database (Qdrant Cloud):** Stores 4-dimensional biomechanical keyframe embeddings (`[elbowAngle, spineTilt, kneeAngle, shoulderAlignment]`). Queries are evaluated using Cosine Similarity to find the closest professional player baseline.
+*   **Application Layer:** Express backend, React + Vite frontend, MediaPipe Vision Tasks, and Gemini AI.
 
-### 2. Clone the Repository
-```bash
-git clone https://github.com/Utkarsh09-gupta/kinectra.git
-cd kinectra
-```
+---
 
-### 3. Configure Environment Variables
+## 4. How to Run
+
+### Prerequisite Environment
 Create a `.env` file in the root directory:
 ```env
-DATABASE_URL="postgresql://neondb_owner:...@ep-...aws.neon.tech/neondb?sslmode=require"
-GEMINI_API_KEY="AIzaSy..."
+PORT=8085
+NODE_ENV=development
+DATABASE_URL=your_postgresql_url
+QDRANT_URL=your_qdrant_cloud_url
+QDRANT_API_KEY=your_qdrant_api_key
+RIME_API_KEY=your_rime_api_key
+JWT_SECRET=your_jwt_secret
 ```
 
-### 4. Install Dependencies
+### Setup & Startup Commands
+Install dependencies and build the workspace:
 ```bash
-pnpm install
-```
+# Install root and workspace dependencies
+npx pnpm install --ignore-scripts
 
-### 5. Push Database Schemas
-Push the schemas directly to your Neon database instance:
-```bash
-pnpm --filter @workspace/db run push
-```
+# Build core API server and Web application
+npx pnpm --filter @workspace/api-server run build
+npx pnpm --filter @workspace/kinectra run build
 
-### 6. Run Dev Servers
-Launch both the frontend and backend in parallel:
-```bash
-# Start Backend (Port 8080)
-pnpm --filter @workspace/api-server run dev
+# Start the Backend Server (Port 8085)
+npx pnpm --filter @workspace/api-server run start
 
-# Start Frontend (Port 24564)
-pnpm --filter @workspace/kinectra run dev
+# Start the Frontend Dev Server (Port 24564)
+npx pnpm --filter @workspace/kinectra run dev
 ```
 
 ---
 
-## 🌐 Production Deployment Summary
+## 5. Biomechanical Proof & Scoring Metrics
+Kinectra enforces realistic cricket regulations:
+1.  **Elbow Extension (ICC Law 17.2):** Expects a straight arm (165°–180°). Warns of *"Illegal elbow flexion"* if the arm bends below 150° during release to flag chucking.
+2.  **Braced Knee Landing:** Evaluates landing stability (145°–165°). Collapsing under 130° triggers a *"Collapsed front landing knee"* warning.
+3.  **Lateral Spine Tilt:** Natural lean is capped between 5° and 22°. Excessive leans trigger warning alerts to protect the lower back.
 
-*   **Vite Frontend** (Render Static Site / Vercel):
-    *   **Build Command**: `pnpm install && pnpm --filter @workspace/kinectra run build`
-    *   **Publish Directory**: `artifacts/kinectra/dist/public`
-    *   **Environment Variable**: `VITE_API_URL="https://your-backend.onrender.com"`
-*   **Express Backend** (Render Web Service):
-    *   **Build Command**: `pnpm install && pnpm run typecheck:libs && pnpm --filter @workspace/api-server run build`
-    *   **Start Command**: `node --enable-source-maps ./artifacts/api-server/dist/index.mjs`
-    *   **Environment Variables**: `DATABASE_URL` and `GEMINI_API_KEY`
+---
+
+## 6. Known Limitations
+*   **2D Camera Projection:** Tilt angles are calculated on 2D pixel coordinates which can introduce slight scaling differences if the camera is not fully level or side-on.
+*   **Lighting conditions:** Poor contrast or dark rooms can degrade MediaPipe landmark confidence thresholds.
