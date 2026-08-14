@@ -184,7 +184,7 @@ router.post("/agora/start-agent", async (req, res): Promise<void> => {
 
     if (pipelineId && pipelineId.trim() !== "") {
       logger.info({ pipelineId }, "Configuring start-agent using Agent Studio Pipeline ID");
-      payload.properties.pipeline_id = pipelineId;
+      payload.pipeline_id = pipelineId;
     } else {
       logger.info("Configuring start-agent using inline Gemini client settings");
       payload.properties.asr = { language: "en-US", vendor: "ares" };
