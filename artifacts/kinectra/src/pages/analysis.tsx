@@ -558,7 +558,10 @@ export default function Analysis() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ channelName, sessionId: config.sessionId })
       });
-      if (!agentRes.ok) throw new Error("Failed to start conversational coaching agent");
+      if (!agentRes.ok) {
+        const errorData = await agentRes.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to start conversational coaching agent");
+      }
       const agentData = await agentRes.json();
 
       setAgoraAgentId(agentData.agentId);
