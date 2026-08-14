@@ -559,8 +559,19 @@ export default function Analysis() {
         body: JSON.stringify({ channelName, sessionId: config.sessionId })
       });
       if (!agentRes.ok) {
-        const errorData = await agentRes.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to start conversational coaching agent");
+        const errorText = await agentRes.text().catch(() => "");
+        let errorMsg = "Failed to start conversational coaching agent";
+        try {
+          const parsed = JSON.parse(errorText);
+          errorMsg = parsed.error || errorMsg;
+        } catch {
+          if (errorText) {
+            errorMsg = `Server Error (${agentRes.status}): ${errorText.substring(0, 80)}`;
+          } else {
+            errorMsg = `Server returned status code ${agentRes.status}`;
+          }
+        }
+        throw new Error(errorMsg);
       }
       const agentData = await agentRes.json();
 
