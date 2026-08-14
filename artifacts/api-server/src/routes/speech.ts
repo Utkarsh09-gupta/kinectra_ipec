@@ -57,4 +57,55 @@ router.get("/session/speech/synthesize", async (req, res): Promise<void> => {
   }
 });
 
+// Route to inject custom instructions (warnings) into the active Agora Conversational Agent session
+router.post("/session/speech/inject-alert", async (req, res): Promise<void> => {
+  const { text, agentId } = req.body;
+
+  if (!text) {
+    res.status(400).json({ error: "text is required" });
+    return;
+  }
+
+  const appId = process.env.AGORA_APP_ID;
+  const customerId = process.env.AGORA_CUSTOMER_ID;
+  const customerSecret = process.env.AGORA_CUSTOMER_SECRET;
+
+  // Fallback check
+  if (!agentId || agentId.startsWith("mock_") || !appId || !customerId || !customerSecret) {
+    logger.info({ agentId, text }, "Agora agent inactive or in mock mode. Requesting client fallback TTS.");
+    res.json({ status: "fallback", message: "Agora agent not active. Play TTS locally." });
+    return;
+  }
+
+  try {
+    logger.info({ agentId, text }, "Injecting alert instruction into Agora Agent...");
+    const authHeader = "Basic " + Buffer.from(`${customerId}:${customerSecret}`).toString("base64");
+    const agoraUrl = `https://api.agora.io/api/conversational-ai-agent/v2/projects/${appId}/agents/${agentId}/custom-instructions`;
+
+    const response = await globalThis.fetch(agoraUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": authHeader,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        text: text,
+        on_listening_action: "interrupt" // Immediately interrupt and speak the warning
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      logger.error({ status: response.status, errText }, "Agora custom instructions injection failed");
+      res.status(502).json({ error: "Agora custom instructions injection failed: " + errText });
+      return;
+    }
+
+    res.json({ status: "success", message: "Instruction injected into Agora agent session." });
+  } catch (error: any) {
+    logger.error(error, "Failed to inject alert to Agora");
+    res.status(500).json({ error: "Internal server error injecting alert: " + error.message });
+  }
+});
+
 export default router;

@@ -12,6 +12,12 @@ import {
   BarChart2,
   Volume2,
   VolumeX,
+  Mic,
+  MicOff,
+  Phone,
+  PhoneOff,
+  MessageSquare,
+  Radio,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +26,7 @@ import { useSessionContext } from "@/contexts/SessionContext";
 import { useEndSession } from "@workspace/api-client-react";
 import { useKinectraAnalysis } from "@/hooks/use-kinectra-analysis";
 import { useAuth } from "@/context/auth_context";
+import { AgoraService } from "../lib/agora-service";
 
 export default function Analysis() {
   const [, setLocation] = useLocation();
@@ -96,6 +103,16 @@ export default function Analysis() {
 
   const endSessionMutation = useEndSession();
   const [frameCount, setFrameCount] = useState(0);
+
+  // ── Agora Conversational AI Session States ──
+  const [agoraConnected, setAgoraConnected] = useState(false);
+  const [agoraStatus, setAgoraStatus] = useState("Disconnected");
+  const [agoraMuted, setAgoraMuted] = useState(false);
+  const [agoraAgentId, setAgoraAgentId] = useState<string | null>(null);
+  const [agoraTranscripts, setAgoraTranscripts] = useState<{ sender: string; text: string; time: string }[]>([
+    { sender: "System", text: "Coach Aryan live audio feedback is offline. Click Connect below to join voice channel.", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+  ]);
+  const agoraServiceRef = useRef<AgoraService | null>(null);
 
   const statsRef = useRef({
     frames: 0,
@@ -492,6 +509,129 @@ export default function Analysis() {
     }
   }, [hasCameraPermission, isModelLoading, startAnalysis]);
 
+  // ── Cleanup Agora Voice Session on Unmount ───────────────────────
+  useEffect(() => {
+    return () => {
+      if (agoraServiceRef.current) {
+        agoraServiceRef.current.leaveChannel().catch(err => console.warn(err));
+      }
+    };
+  }, []);
+
+  // ── Agora Live Coaching Room Management ──────────────────────────
+  const connectAgora = async () => {
+    if (!config.sessionId) return;
+    try {
+      setAgoraStatus("Requesting token...");
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+      const channelName = `session-${config.sessionId}`;
+      
+      // 1. Fetch token and App ID from backend
+      const tokenRes = await fetch(`${API_BASE_URL}/api/agora/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelName, uid: 0 })
+      });
+      if (!tokenRes.ok) throw new Error("Failed to retrieve Agora token");
+      const { token, appId } = await tokenRes.json();
+
+      // 2. Initialize client-side Agora service
+      const service = new AgoraService(appId, channelName, token, 0);
+      agoraServiceRef.current = service;
+
+      service.registerStatusCallback((status) => {
+        setAgoraStatus(status);
+        if (status.includes("Connected")) {
+          setAgoraConnected(true);
+        } else if (status === "Disconnected") {
+          setAgoraConnected(false);
+        }
+      });
+
+      // 3. Join the voice channel
+      await service.joinChannel();
+
+      // 4. Start backend Agent
+      setAgoraStatus("Summoning Coach Aryan...");
+      const agentRes = await fetch(`${API_BASE_URL}/api/agora/start-agent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelName, sessionId: config.sessionId })
+      });
+      if (!agentRes.ok) throw new Error("Failed to start conversational coaching agent");
+      const agentData = await agentRes.json();
+
+      setAgoraAgentId(agentData.agentId);
+      
+      setAgoraTranscripts((prev) => [
+        ...prev,
+        {
+          sender: "Coach Aryan",
+          text: agentData.isFallback 
+            ? "Live audio link established (Local Fallback active)." 
+            : "Joined voice room! I'm monitoring your action in real-time. Ask me anything!",
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+      
+      setAgoraStatus(agentData.isFallback ? "Connected (Local Fallback)" : "Connected (Listening)");
+      setAgoraConnected(true);
+      
+      toast({
+        title: "Connected to Coach Aryan",
+        description: "Voice-guided biomechanical coaching session is now active."
+      });
+    } catch (err: any) {
+      console.error("Agora connection failed:", err);
+      toast({
+        variant: "destructive",
+        title: "Agora connection failed",
+        description: err.message || "Failed to establish voice room connection."
+      });
+      setAgoraStatus("Disconnected");
+      setAgoraConnected(false);
+      if (agoraServiceRef.current) {
+        await agoraServiceRef.current.leaveChannel();
+        agoraServiceRef.current = null;
+      }
+    }
+  };
+
+  const disconnectAgora = async () => {
+    if (agoraServiceRef.current) {
+      setAgoraStatus("Disconnecting...");
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+      if (agoraAgentId) {
+        fetch(`${API_BASE_URL}/api/agora/stop-agent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentId: agoraAgentId })
+        }).catch((err) => console.warn("Failed to stop backend agent:", err));
+      }
+      await agoraServiceRef.current.leaveChannel();
+      agoraServiceRef.current = null;
+    }
+    setAgoraAgentId(null);
+    setAgoraConnected(false);
+    setAgoraStatus("Disconnected");
+    setAgoraTranscripts((prev) => [
+      ...prev,
+      {
+        sender: "System",
+        text: "Voice coaching session ended.",
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
+  };
+
+  const toggleMuteAgora = async () => {
+    if (agoraServiceRef.current) {
+      const nextMute = !agoraMuted;
+      await agoraServiceRef.current.setMute(nextMute);
+      setAgoraMuted(nextMute);
+    }
+  };
+
   // ── Speech Alerts Engine (Uses Smoothed Telemetry) ────────────────
   const lastSpokenRef = useRef<Record<string, number>>({});
   const audioCacheRef = useRef<Record<string, HTMLAudioElement>>({});
@@ -500,7 +640,45 @@ export default function Analysis() {
   const playSpeechText = (text: string) => {
     if (isMuted) return;
 
-    // Cancel any currently playing speech audio
+    // ── Agora Live Interruption Alert Route ──
+    if (agoraConnected && agoraAgentId && !agoraAgentId.startsWith("mock_")) {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+
+      // Optimistically push the warning to the UI transcript list
+      setAgoraTranscripts((prev) => [
+        ...prev,
+        {
+          sender: "Coach Aryan (Alert)",
+          text: text,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+
+      // Call alert injection endpoint to trigger immediate voice interruption
+      fetch(`${API_BASE_URL}/api/session/speech/inject-alert`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, agentId: agoraAgentId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "fallback") {
+          console.info("Agora Agent is fallback. Executing local TTS warning.");
+          playSpeechTextLocal(text);
+        }
+      })
+      .catch(err => {
+        console.warn("Failed to inject Agora alert, falling back to local TTS:", err);
+        playSpeechTextLocal(text);
+      });
+      return;
+    }
+
+    // Standard local fallback (also handles offline/mock mode)
+    playSpeechTextLocal(text);
+  };
+
+  const playSpeechTextLocal = (text: string) => {
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
       currentAudioRef.current.currentTime = 0;
@@ -521,7 +699,6 @@ export default function Analysis() {
       return;
     }
 
-    // Generate url for Rime backend proxy
     const API_BASE_URL = import.meta.env.VITE_API_URL || "";
     const audioUrl = `${API_BASE_URL}/api/session/speech/synthesize?text=${encodeURIComponent(text)}`;
     const audio = new Audio(audioUrl);
@@ -533,7 +710,6 @@ export default function Analysis() {
       audio.onerror = () => setIsSpeaking(false);
     }).catch((err) => {
       console.warn("Rime speech playing failed, falling back to window.speechSynthesis:", err);
-      // Fallback to local browser synthesis
       if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
@@ -605,6 +781,21 @@ export default function Analysis() {
           statsRef.current.alignmentSum += metricsRef.current.shoulderAlignment < 10 ? 95 : 60;
           statsRef.current.stabilitySum += metricsRef.current.balanceScore;
           statsRef.current.efficiencySum += metricsRef.current.techniqueScore;
+
+          // Dispatch telemetry frame to backend to empower Agora agent's tool calls
+          if (config.sessionId) {
+            const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+            fetch(`${API_BASE_URL}/api/session/${config.sessionId}/frame`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                elbowAngle: metricsRef.current.elbowAngle,
+                spineTilt: metricsRef.current.spineTilt,
+                kneeAngle: metricsRef.current.kneeAngle,
+                shoulderAlignment: metricsRef.current.shoulderAlignment
+              })
+            }).catch((err) => console.warn("Failed to dispatch telemetry frame:", err));
+          }
         }
       }, 1000);
     }
@@ -830,6 +1021,117 @@ export default function Analysis() {
           <p className="text-[9px] font-mono text-center text-slate-500 uppercase tracking-widest mt-1">
             Avatar animated dynamically in sync with text-to-speech instructions.
           </p>
+
+          {/* Agora Conversational voice coach widget */}
+          <div className="flex flex-col gap-2 border border-slate-800 bg-[#0b1329] rounded-xl p-4 mt-2 shadow-2xl shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Radio className={`h-4 w-4 ${agoraConnected ? 'text-green-500 animate-pulse' : 'text-slate-400'}`} />
+                <span className="text-xs font-bold text-white uppercase tracking-wider font-semibold">Coach Aryan Live Voice</span>
+              </div>
+              <span className={`text-[9px] px-2 py-0.5 rounded font-mono uppercase font-semibold ${
+                agoraStatus.includes("Connected") 
+                  ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
+                  : agoraStatus.includes("Connecting") || agoraStatus.includes("Summoning")
+                  ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 animate-pulse'
+                  : 'bg-slate-800 text-slate-400 border border-slate-700'
+              }`}>
+                {agoraStatus}
+              </span>
+            </div>
+
+            {/* Connection Toggle & Microphone controls */}
+            <div className="flex gap-2 mt-1">
+              {!agoraConnected ? (
+                <Button
+                  onClick={connectAgora}
+                  disabled={agoraStatus === "Requesting token..." || agoraStatus === "Connecting..." || agoraStatus === "Summoning Coach Aryan..."}
+                  className="flex-1 text-xs py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white rounded-lg font-bold flex items-center justify-center gap-1.5 shadow"
+                >
+                  <Phone className="h-3.5 w-3.5" />
+                  Connect Voice Coach
+                </Button>
+              ) : (
+                <div className="flex gap-2 w-full">
+                  <Button
+                    onClick={toggleMuteAgora}
+                    variant="outline"
+                    className={`flex-1 text-xs border ${
+                      agoraMuted 
+                        ? 'border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20' 
+                        : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    } rounded-lg flex items-center justify-center gap-1.5`}
+                  >
+                    {agoraMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                    {agoraMuted ? "Unmute Mic" : "Mute Mic"}
+                  </Button>
+                  <Button
+                    onClick={disconnectAgora}
+                    className="flex-1 text-xs bg-red-600 hover:bg-red-500 text-white rounded-lg flex items-center justify-center gap-1.5"
+                  >
+                    <PhoneOff className="h-3.5 w-3.5" />
+                    Disconnect
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Visual Waveform */}
+            {agoraConnected && (
+              <div className="flex items-center justify-center gap-1 h-6 bg-[#080d1a] border border-slate-800 rounded-lg py-1 px-3">
+                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest mr-2">Vocal Wave:</span>
+                {[...Array(12)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="w-1 rounded-full bg-gradient-to-t from-red-500 to-orange-500"
+                    animate={
+                      agoraStatus.includes("Speaking") || isSpeaking
+                        ? { height: ["10%", "95%", "10%"] }
+                        : agoraMuted
+                        ? { height: "10%" }
+                        : { height: ["15%", "35%", "15%"] }
+                    }
+                    transition={{
+                      duration: 0.5 + Math.random() * 0.4,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: i * 0.05
+                    }}
+                    style={{ height: "30%" }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Scrolling Chat Transcripts */}
+            <div className="flex flex-col gap-1.5 mt-1 border border-slate-800 bg-[#080d1a] rounded-lg p-2.5 max-h-[140px] overflow-y-auto shadow-inner">
+              <div className="flex items-center gap-1.5 text-[9px] font-mono text-slate-500 uppercase tracking-widest mb-1 border-b border-slate-800 pb-1">
+                <MessageSquare className="h-3 w-3" />
+                <span>Coach Aryan Live Log</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {agoraTranscripts.map((t, idx) => (
+                  <div key={idx} className="flex flex-col gap-0.5 text-xs leading-normal">
+                    <div className="flex items-center justify-between">
+                      <span className={`font-mono text-[9px] uppercase font-bold tracking-wider ${
+                        t.sender === "Coach Aryan" || t.sender.includes("Alert") 
+                          ? 'text-orange-400' 
+                          : t.sender === "System" 
+                          ? 'text-slate-500' 
+                          : 'text-sky-400'
+                      }`}>
+                        {t.sender}
+                      </span>
+                      <span className="text-[8px] font-mono text-slate-600">{t.time}</span>
+                    </div>
+                    <p className={`text-slate-300 ${t.sender === "System" ? 'italic text-slate-500' : ''}`}>
+                      {t.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
