@@ -168,36 +168,45 @@ router.post("/agora/start-agent", async (req, res): Promise<void> => {
     // Call Agora API to launch the conversational AI agent
     const agoraUrl = `https://api.agora.io/api/conversational-ai-agent/v2/projects/${appId}/join`;
     
-    // Inline Gemini configuration to make setup zero-config for Agent Studio
-    const payload = {
+    // Support both Agent Studio (via AGORA_PIPELINE_ID) and inline configuration
+    const pipelineId = process.env.AGORA_PIPELINE_ID;
+    
+    const payload: any = {
       name: "coach-aryan",
       properties: {
         channel: channelName,
         token: agentToken,
         agent_rtc_uid: "9999",
         remote_rtc_uids: ["*"],
-        idle_timeout: 300,
-        asr: { language: "en-US", vendor: "ares" },
-        vad: { mode: "interrupt" },
-        llm: {
-          url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-          api_key: process.env.GEMINI_API_KEY,
-          system_messages: [
-            {
-              role: "system",
-              content: `You are Coach Aryan, an expert cricket biomechanics coach. You are helping an athlete in the nets. Listen to their questions and provide brief, punchy coaching advice (under 15 words). The active sessionId is "${sessionId}". If they ask how they did on their last delivery, or to compare their pose, use the available tools to fetch data first, then answer them.`
-            }
-          ],
-          params: { model: "gemini-1.5-flash" }
-        },
-        tts: {
-          vendor: "microsoft",
-          params: {
-            voice_name: "en-US-AndrewMultilingualNeural"
-          }
-        }
+        idle_timeout: 300
       }
     };
+
+    if (pipelineId && pipelineId.trim() !== "") {
+      logger.info({ pipelineId }, "Configuring start-agent using Agent Studio Pipeline ID");
+      payload.properties.pipeline_id = pipelineId;
+    } else {
+      logger.info("Configuring start-agent using inline Gemini client settings");
+      payload.properties.asr = { language: "en-US", vendor: "ares" };
+      payload.properties.vad = { mode: "interrupt" };
+      payload.properties.llm = {
+        url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        api_key: process.env.GEMINI_API_KEY,
+        system_messages: [
+          {
+            role: "system",
+            content: `You are Coach Aryan, an expert cricket biomechanics coach. You are helping an athlete in the nets. Listen to their questions and provide brief, punchy coaching advice (under 15 words). The active sessionId is "${sessionId}". If they ask how they did on their last delivery, or to compare their pose, use the available tools to fetch data first, then answer them.`
+          }
+        ],
+        params: { model: "gemini-1.5-flash" }
+      };
+      payload.properties.tts = {
+        vendor: "microsoft",
+        params: {
+          voice_name: "en-US-AndrewMultilingualNeural"
+        }
+      };
+    }
 
     logger.info({ channelName, sessionId }, "Starting Agora Conversational AI Agent...");
     const response = await globalThis.fetch(agoraUrl, {
