@@ -208,7 +208,15 @@ router.post("/agora/start-agent", async (req, res): Promise<void> => {
       };
     }
 
-    logger.info({ channelName, sessionId }, "Starting Agora Conversational AI Agent...");
+    logger.info(
+      { 
+        channelName, 
+        sessionId, 
+        hasPipelineId: !!payload.pipeline_id, 
+        pipelineId: payload.pipeline_id 
+      }, 
+      "Starting Agora Conversational AI Agent..."
+    );
     const response = await globalThis.fetch(agoraUrl, {
       method: "POST",
       headers: {
