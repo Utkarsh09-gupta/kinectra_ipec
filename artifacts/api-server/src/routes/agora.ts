@@ -174,7 +174,7 @@ router.post("/agora/start-agent", async (req, res): Promise<void> => {
       properties: {
         channel: channelName,
         token: agentToken,
-        agent_rtc_uid: 9999,
+        agent_rtc_uid: "9999",
         remote_rtc_uids: ["*"],
         idle_timeout: 300,
         asr: { language: "en-US", vendor: "ares" },
