@@ -358,7 +358,7 @@ Your instructions:
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         messages,
         temperature: 0.3,
         max_tokens: 150

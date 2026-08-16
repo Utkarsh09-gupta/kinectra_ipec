@@ -198,7 +198,7 @@ router.post("/agora/start-agent", async (req, res): Promise<void> => {
             content: `You are Coach Aryan, an expert cricket biomechanics coach. You are helping an athlete in the nets. Listen to their questions and provide brief, punchy coaching advice (under 15 words). The active sessionId is "${sessionId}". If they ask how they did on their last delivery, or to compare their pose, use the available tools to fetch data first, then answer them.`
           }
         ],
-        params: { model: "gemini-1.5-flash" }
+        params: { model: "gemini-3.5-flash" }
       };
       payload.properties.tts = {
         vendor: "microsoft",
@@ -217,19 +217,36 @@ router.post("/agora/start-agent", async (req, res): Promise<void> => {
       }, 
       "Starting Agora Conversational AI Agent..."
     );
-    const response = await globalThis.fetch(agoraUrl, {
-      method: "POST",
-      headers: {
-        "Authorization": authHeader,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+    let response;
+    try {
+      response = await globalThis.fetch(agoraUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": authHeader,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (err: any) {
+      logger.error(err, "Failed to reach Agora REST API. Falling back to local mock mode.");
+      res.json({
+        status: "mock_success",
+        message: "Failed to reach Agora API. Operating in fallback mode.",
+        agentId: "mock_agent_session_12345",
+        isFallback: true
+      });
+      return;
+    }
 
     if (!response.ok) {
       const errText = await response.text();
-      logger.error({ status: response.status, errText }, "Agora API start agent failed");
-      res.status(502).json({ error: "Agora API start agent failed: " + errText });
+      logger.warn({ status: response.status, errText }, "Agora API start agent returned an error. Falling back to local mock mode.");
+      res.json({
+        status: "mock_success",
+        message: "Agora API returned an error. Operating in fallback mode.",
+        agentId: "mock_agent_session_12345",
+        isFallback: true
+      });
       return;
     }
 
