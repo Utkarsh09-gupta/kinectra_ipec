@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "@/contexts/SessionContext";
 import { AuthProvider, useAuth } from "@/context/auth_context";
 import { Loader2 } from "lucide-react";
-
+// Vercel deployment routing trigger
 import Home from "@/pages/home";
 import Setup from "@/pages/setup";
 import Analysis from "@/pages/analysis";
