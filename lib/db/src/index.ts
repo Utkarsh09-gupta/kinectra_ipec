@@ -19,20 +19,30 @@ if (process.env.DATABASE_URL) {
   );
 
   const dbFilePath = path.join(process.cwd(), ".kinectra_db.json");
-  let memorySessions: any[] = [];
-  let memoryUsers: any[] = [];
+  const dbData: Record<string, any[]> = {
+    users: [],
+    sessions: [],
+    signature_moves: [],
+    signature_sessions: []
+  };
 
   const loadMemoryDb = () => {
     try {
       if (fs.existsSync(dbFilePath)) {
         const data = JSON.parse(fs.readFileSync(dbFilePath, "utf-8"));
-        memorySessions = data.sessions || [];
-        memoryUsers = data.users || [];
-        memorySessions.forEach((s: any) => {
+        dbData.users = data.users || [];
+        dbData.sessions = data.sessions || [];
+        dbData.signature_moves = data.signature_moves || [];
+        dbData.signature_sessions = data.signature_sessions || [];
+        
+        dbData.users.forEach((u: any) => {
+          if (u.createdAt) u.createdAt = new Date(u.createdAt);
+        });
+        dbData.sessions.forEach((s: any) => {
           if (s.createdAt) s.createdAt = new Date(s.createdAt);
         });
-        memoryUsers.forEach((u: any) => {
-          if (u.createdAt) u.createdAt = new Date(u.createdAt);
+        dbData.signature_sessions.forEach((s: any) => {
+          if (s.timestamp) s.timestamp = new Date(s.timestamp);
         });
       }
     } catch (e) {
@@ -42,7 +52,7 @@ if (process.env.DATABASE_URL) {
 
   const saveMemoryDb = () => {
     try {
-      fs.writeFileSync(dbFilePath, JSON.stringify({ sessions: memorySessions, users: memoryUsers }, null, 2));
+      fs.writeFileSync(dbFilePath, JSON.stringify(dbData, null, 2));
     } catch (e) {
       console.error("Failed to save persistent mock DB:", e);
     }
@@ -90,19 +100,19 @@ if (process.env.DATABASE_URL) {
       return this;
     }
     then(resolve: any) {
-      const record = {
-        ...this.valuesObj,
-        createdAt: new Date(),
-      };
       const tableName = (this.table as any)?.[Symbol.for("drizzle:Name")] || 
                         (this.table as any)?.[Symbol.for("drizzle:OriginalName")] || 
                         (this.table as any)?._?.name || 
                         "";
-      if (tableName === "users") {
-        memoryUsers.push(record);
-      } else {
-        memorySessions.push(record);
+      const record = {
+        ...this.valuesObj,
+        createdAt: new Date(),
+        timestamp: new Date(),
+      };
+      if (!dbData[tableName]) {
+        dbData[tableName] = [];
       }
+      dbData[tableName].push(record);
       saveMemoryDb();
       resolve([record]);
     }
@@ -135,7 +145,10 @@ if (process.env.DATABASE_URL) {
                         (this.fromTable as any)?.[Symbol.for("drizzle:OriginalName")] || 
                         (this.fromTable as any)?._?.name || 
                         "";
-      let result = tableName === "users" ? [...memoryUsers] : [...memorySessions];
+      if (!dbData[tableName]) {
+        dbData[tableName] = [];
+      }
+      let result = [...dbData[tableName]];
       if (this.whereCondition) {
         const targetId = extractValueFromCondition(this.whereCondition);
         if (targetId) {
@@ -146,8 +159,10 @@ if (process.env.DATABASE_URL) {
           });
         }
       }
-      if (tableName !== "users") {
+      if (tableName === "sessions") {
         result.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      } else if (tableName === "signature_sessions") {
+        result.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
       }
       result = result.slice(0, this.limitCount);
       resolve(result);
@@ -174,22 +189,15 @@ if (process.env.DATABASE_URL) {
                             (this.table as any)?.[Symbol.for("drizzle:OriginalName")] || 
                             (this.table as any)?._?.name || 
                             "";
-          if (tableName === "users") {
-            const index = memoryUsers.findIndex((u) => u.id === targetId || u.username.toLowerCase() === targetId.toLowerCase());
-            if (index !== -1) {
-              memoryUsers[index] = {
-                ...memoryUsers[index],
-                ...this.setObj,
-              };
-            }
-          } else {
-            const index = memorySessions.findIndex((s) => s.id === targetId);
-            if (index !== -1) {
-              memorySessions[index] = {
-                ...memorySessions[index],
-                ...this.setObj,
-              };
-            }
+          if (!dbData[tableName]) {
+            dbData[tableName] = [];
+          }
+          const index = dbData[tableName].findIndex((item) => item.id === targetId || (item.username && item.username.toLowerCase() === targetId.toLowerCase()));
+          if (index !== -1) {
+            dbData[tableName][index] = {
+              ...dbData[tableName][index],
+              ...this.setObj,
+            };
           }
         }
       }

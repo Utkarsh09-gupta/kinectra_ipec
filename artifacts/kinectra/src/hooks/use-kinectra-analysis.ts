@@ -24,6 +24,7 @@ export interface KinectraAnalysisResult {
   isModelLoading: boolean;
   modelError: string | null;
   metrics: KinectraMetrics;
+  rawLandmarks: any[] | null;
   startAnalysis: (videoElement: HTMLVideoElement, canvasElement: HTMLCanvasElement) => void;
   stopAnalysis: () => void;
 }
@@ -58,6 +59,7 @@ export function useKinectraAnalysis(
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [modelError, setModelError] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<KinectraMetrics>(DEFAULT_METRICS);
+  const [rawLandmarks, setRawLandmarks] = useState<any[] | null>(null);
 
   const poseLandmarkerRef = useRef<PoseLandmarker | null>(null);
   const rafRef = useRef<number>(0);
@@ -114,9 +116,11 @@ export function useKinectraAnalysis(
           ...prev,
           bodyDetected: false
         }));
+        setRawLandmarks(null);
         return;
       }
       const pose = landmarks[0];
+      setRawLandmarks(pose);
       const isRight = dominantHand === "right";
 
       const nose = pose[0];
@@ -135,7 +139,14 @@ export function useKinectraAnalysis(
       const ankle = isRight ? rAnkle : lAnkle;
 
       const elbowAngle = calculateAngle(shoulder, elbow, wrist);
-      const kneeAngle = calculateAngle(hip, knee, ankle);
+
+      const hipVisibility = hip ? (hip.visibility ?? 1.0) : 0;
+      const kneeVisibility = knee ? (knee.visibility ?? 1.0) : 0;
+      const ankleVisibility = ankle ? (ankle.visibility ?? 1.0) : 0;
+
+      const kneeAngle = (hipVisibility < 0.5 || kneeVisibility < 0.5 || ankleVisibility < 0.5)
+        ? -1
+        : calculateAngle(hip, knee, ankle);
 
       const midHip = {
         x: (lHip.x + rHip.x) / 2,
@@ -158,52 +169,125 @@ export function useKinectraAnalysis(
       );
 
       const hipLevel = Math.abs(lHip.y - rHip.y);
-      const balanceScore = Math.max(0, Math.min(100, 100 - hipLevel * 500));
+      let balanceScore = Math.max(0, Math.min(100, 100 - hipLevel * 500));
+      if (analysisType === "bowling") {
+        balanceScore = Math.max(0, Math.min(100, 100 - hipLevel * 120));
+      }
 
       const warnings: string[] = [];
       let techniqueScore = 100;
 
       if (analysisType === "bowling") {
         // Legal extension check (optimal release arm should be almost straight: 165°–180°)
-        const elbowScore = Math.max(0, 100 - Math.max(0, 165 - elbowAngle) * 3);
-        if (elbowAngle < 150) warnings.push("Illegal elbow flexion (Chucking risk)");
+        // Relaxed threshold to 155° and buffer factor to account for off-axis high-angle camera project distortion
+        const elbowScore = Math.max(0, 100 - Math.max(0, 155 - elbowAngle) * 2.5);
+        if (elbowAngle < 140) warnings.push("Illegal elbow flexion (Chucking risk)");
 
-        // Front knee brace check (optimal landing knee should be firm: 145°–165°)
-        const kneeScore = Math.max(0, 100 - Math.max(0, 145 - kneeAngle) * 2.5);
-        if (kneeAngle < 130) warnings.push("Collapsed front landing knee");
+        // Front knee brace check (optimal landing knee should be firm: 135°–165° to allow landing impact absorption)
+        const kneeScore = kneeAngle === -1 ? 100 : Math.max(0, 100 - Math.max(0, 135 - kneeAngle) * 2.0);
+        if (kneeAngle !== -1 && kneeAngle < 120) warnings.push("Collapsed front landing knee");
 
-        // Spine tilt check (optimal lateral lean for shoulder release: 5°–22°)
+        // Spine tilt check (optimal lateral lean for express fast-bowlers reaches up to 30°)
         let spineScore = 100;
-        if (spineTilt > 22) {
-          spineScore = Math.max(0, 100 - (spineTilt - 22) * 4);
+        if (spineTilt > 30) {
+          spineScore = Math.max(0, 100 - (spineTilt - 30) * 3);
           warnings.push("Excessive lateral spine tilt");
         } else if (spineTilt < 5) {
           spineScore = 90;
         }
 
-        // Shoulder alignment check (should rot deviation < 15°)
-        const shoulderScore = Math.max(0, 100 - Math.max(0, shoulderAlignment - 15) * 3.5);
-        if (shoulderAlignment > 25) warnings.push("Poor shoulder rotation");
+        // Shoulder alignment check (fast bowlers require shoulder rotation through the delivery stride; rot deviation should be up to 25° during release)
+        const shoulderScore = Math.max(0, 100 - Math.max(0, shoulderAlignment - 25) * 1.5);
+        if (shoulderAlignment > 35) warnings.push("Poor shoulder rotation");
 
-        techniqueScore =
-          balanceScore * 0.2 +
-          elbowScore * 0.3 +
-          kneeScore * 0.2 +
-          spineScore * 0.2 +
-          shoulderScore * 0.1;
+        // Adjust weights dynamically if knee is not visible
+        if (kneeAngle === -1) {
+          techniqueScore =
+            balanceScore * 0.25 +
+            elbowScore * 0.4 +
+            spineScore * 0.25 +
+            shoulderScore * 0.1;
+        } else {
+          techniqueScore =
+            balanceScore * 0.2 +
+            elbowScore * 0.3 +
+            kneeScore * 0.2 +
+            spineScore * 0.2 +
+            shoulderScore * 0.1;
+        }
+      } else if (analysisType === "basketball") {
+        // Basketball Shooting
+        const isHandActive = wrist && hip && (wrist.y < hip.y - 0.05); // wrist must be above hip waist level to indicate active shot setup/release
+        const elbowScore = isHandActive ? Math.max(0, 100 - Math.abs(elbowAngle - 90) * 2.5) : 0;
+        if (elbowAngle > 110) warnings.push("Low set-point elbow flexion (Pushing shot)");
+        if (elbowAngle < 70) warnings.push("Excessive set-point elbow flexion");
+
+        const kneeScore = kneeAngle === -1 ? 100 : Math.max(0, 100 - Math.max(0, 115 - kneeAngle) * 3 - Math.max(0, kneeAngle - 130) * 2.5);
+        if (kneeAngle !== -1 && kneeAngle > 140) warnings.push("Shallow leg drive dip");
+        if (kneeAngle !== -1 && kneeAngle < 105) warnings.push("Too deep shooting leg loading");
+
+        const spineScore = Math.max(0, 100 - Math.max(0, spineTilt - 10) * 5);
+        if (spineTilt > 12) warnings.push("Lateral spine lean on release (Balance drift)");
+
+        if (kneeAngle === -1) {
+          techniqueScore = balanceScore * 0.25 + elbowScore * 0.45 + spineScore * 0.3;
+        } else {
+          techniqueScore = balanceScore * 0.2 + elbowScore * 0.35 + kneeScore * 0.25 + spineScore * 0.2;
+        }
+
+        // Heavy penalty if hand is just resting at side (idle stance)
+        if (!isHandActive) {
+          techniqueScore = techniqueScore * 0.15;
+        }
+      } else if (analysisType === "badminton") {
+        // Badminton Smash
+        const isWristOverhead = wrist && shoulder && (wrist.y < shoulder.y); // wrist must be above shoulder level for overhead reach
+        const elbowScore = isWristOverhead ? Math.max(0, 100 - Math.max(0, 155 - elbowAngle) * 3.5) : 0;
+        if (!isWristOverhead || elbowAngle < 145) warnings.push("Short overhead reach (Low contact point)");
+
+        const kneeScore = kneeAngle === -1 ? 100 : Math.max(0, 100 - Math.max(0, 120 - kneeAngle) * 3.5 - Math.max(0, kneeAngle - 145) * 2);
+        if (kneeAngle !== -1 && kneeAngle < 110) warnings.push("Knee translated past toe (Patellar stress)");
+        if (kneeAngle !== -1 && kneeAngle > 155) warnings.push("Stiff shock lunge landing");
+
+        const spineScore = Math.max(0, 100 - Math.abs(spineTilt - 20) * 3.5);
+        if (spineTilt < 10) warnings.push("Rigid trunk loading posture");
+        if (spineTilt > 30) warnings.push("Excessive lateral lean (Recovery lag)");
+
+        if (kneeAngle === -1) {
+          techniqueScore = balanceScore * 0.25 + elbowScore * 0.45 + spineScore * 0.3;
+        } else {
+          techniqueScore = balanceScore * 0.2 + elbowScore * 0.35 + kneeScore * 0.25 + spineScore * 0.2;
+        }
+
+        // Heavy penalty if wrist is below shoulder level (idle stance)
+        if (!isWristOverhead) {
+          techniqueScore = techniqueScore * 0.15;
+        }
       } else {
-        if (kneeAngle < 120) warnings.push("Front knee bent too much");
-        if (elbowAngle < 90) warnings.push("Low bat lift");
-        techniqueScore =
-          balanceScore * 0.3 +
-          Math.max(0, 100 - Math.abs(kneeAngle - 150) * 0.5) * 0.3 +
-          Math.max(0, 100 - spineTilt * 2) * 0.2 +
-          Math.max(0, 100 - shoulderAlignment * 2) * 0.2;
+        // Cricket Batting
+        const kneeScore = kneeAngle === -1 ? 100 : Math.max(0, 100 - Math.max(0, 135 - kneeAngle) * 3 - Math.max(0, kneeAngle - 155) * 2);
+        if (kneeAngle !== -1 && kneeAngle < 125) warnings.push("Front foot delayed / collapsed knee");
+        if (kneeAngle !== -1 && kneeAngle > 160) warnings.push("Stiff front-foot landing stride");
+
+        const elbowScore = Math.max(0, 100 - Math.max(0, 90 - elbowAngle) * 2.5);
+        if (elbowAngle < 85) warnings.push("Low bat lift backswing");
+
+        const spineScore = Math.max(0, 100 - Math.max(0, spineTilt - 15) * 4);
+        if (spineTilt > 15) warnings.push("Balance unstable (Excessive lean)");
+
+        const shoulderScore = Math.max(0, 100 - Math.max(0, shoulderAlignment - 12) * 3);
+        if (shoulderAlignment > 15) warnings.push("Open shoulder position too early");
+
+        if (kneeAngle === -1) {
+          techniqueScore = balanceScore * 0.25 + elbowScore * 0.35 + spineScore * 0.25 + shoulderScore * 0.15;
+        } else {
+          techniqueScore = balanceScore * 0.2 + elbowScore * 0.3 + kneeScore * 0.2 + spineScore * 0.2 + shoulderScore * 0.1;
+        }
       }
 
       setMetrics({
         elbowAngle: Math.round(elbowAngle),
-        kneeAngle: Math.round(kneeAngle),
+        kneeAngle: kneeAngle === -1 ? -1 : Math.round(kneeAngle),
         shoulderAlignment: Math.round(shoulderAlignment),
         spineTilt: Math.round(spineTilt),
         headStability: 95,
@@ -266,15 +350,181 @@ export function useKinectraAnalysis(
               ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
               if (result.landmarks && result.landmarks.length > 0) {
                 for (const landmark of result.landmarks) {
-                  drawingUtils.drawConnectors(
-                    landmark,
-                    PoseLandmarker.POSE_CONNECTIONS,
-                    { color: "#22c55e", lineWidth: 3 }
-                  );
-                  drawingUtils.drawLandmarks(landmark, {
-                    color: "#ffffff",
-                    lineWidth: 1,
-                    radius: 3,
+                  // Custom Volumetric Telemetry Mannequin Drawing
+                  const getPt = (idx: number) => {
+                    const pt = landmark[idx];
+                    return pt ? { x: pt.x * canvasElement.width, y: pt.y * canvasElement.height } : null;
+                  };
+
+                  const joints = {
+                    lsho: getPt(11),
+                    rsho: getPt(12),
+                    lelb: getPt(13),
+                    relb: getPt(14),
+                    lwri: getPt(15),
+                    rwri: getPt(16),
+                    lhip: getPt(23),
+                    rhip: getPt(24),
+                    lkne: getPt(25),
+                    rkne: getPt(26),
+                    lank: getPt(27),
+                    rank: getPt(28),
+                  };
+
+                  const bones = [
+                    [joints.lsho, joints.rsho],
+                    [joints.lsho, joints.lelb],
+                    [joints.lelb, joints.lwri],
+                    [joints.rsho, joints.relb],
+                    [joints.relb, joints.rwri],
+                    [joints.lsho, joints.lhip],
+                    [joints.rsho, joints.rhip],
+                    [joints.lhip, joints.rhip],
+                    [joints.lhip, joints.lkne],
+                    [joints.lkne, joints.lank],
+                    [joints.rhip, joints.rkne],
+                    [joints.rkne, joints.rank],
+                  ];
+
+                  // 0. Estimate Neck & Head Proportions
+                  if (joints.lsho && joints.rsho) {
+                    const midSX = (joints.lsho.x + joints.rsho.x) / 2;
+                    const midSY = (joints.lsho.y + joints.rsho.y) / 2;
+                    const shoWidth = Math.hypot(joints.rsho.x - joints.lsho.x, joints.rsho.y - joints.lsho.y) || 50;
+                    
+                    const dx = joints.rsho.x - joints.lsho.x;
+                    const dy = joints.rsho.y - joints.lsho.y;
+                    const rawAngle = Math.atan2(dy, dx);
+                    const tilt = Number.isNaN(rawAngle) ? 0 : rawAngle * 0.45;
+                    
+                    const neckLen = shoWidth * 0.4;
+                    const headX = midSX - neckLen * Math.sin(tilt);
+                    const headY = midSY - neckLen * Math.cos(tilt);
+                    const headRadius = shoWidth * 0.28;
+                    
+                    // Draw neck volume cylinder
+                    ctx.strokeStyle = "rgba(34, 197, 94, 0.15)";
+                    ctx.lineWidth = 8;
+                    ctx.beginPath();
+                    ctx.moveTo(midSX, midSY);
+                    ctx.lineTo(headX, headY);
+                    ctx.stroke();
+                    
+                    // Draw neck bone line
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(midSX, midSY);
+                    ctx.lineTo(headX, headY);
+                    ctx.stroke();
+                    
+                    // Draw glossy 3D head sphere using radial specular gradient
+                    const radGrad = ctx.createRadialGradient(
+                      headX - headRadius * 0.3,
+                      headY - headRadius * 0.3,
+                      headRadius * 0.1,
+                      headX,
+                      headY,
+                      headRadius
+                    );
+                    radGrad.addColorStop(0, "#ffffff");
+                    radGrad.addColorStop(0.3, "#4ade80");
+                    radGrad.addColorStop(1, "#166534");
+                    
+                    ctx.fillStyle = radGrad;
+                    ctx.strokeStyle = "#22c55e";
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(headX, headY, headRadius, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.stroke();
+                  }
+
+                  // 1. Torso Chest Plate
+                  if (joints.lsho && joints.rsho && joints.rhip && joints.lhip) {
+                    ctx.fillStyle = "rgba(34, 197, 94, 0.08)";
+                    ctx.beginPath();
+                    ctx.moveTo(joints.lsho.x, joints.lsho.y);
+                    ctx.lineTo(joints.rsho.x, joints.rsho.y);
+                    ctx.lineTo(joints.rhip.x, joints.rhip.y);
+                    ctx.lineTo(joints.lhip.x, joints.lhip.y);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = "rgba(34, 197, 94, 0.25)";
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                  }
+
+                  // 2. Volumetric Limb Cylinders
+                  ctx.lineCap = "round";
+                  ctx.strokeStyle = "rgba(34, 197, 94, 0.15)";
+                  ctx.lineWidth = 14;
+                  for (const [ptA, ptB] of bones) {
+                    if (ptA && ptB) {
+                      ctx.beginPath();
+                      ctx.moveTo(ptA.x, ptA.y);
+                      ctx.lineTo(ptB.x, ptB.y);
+                      ctx.stroke();
+                    }
+                  }
+
+                  // 3. Live English Willow Bat tracking
+                  if (joints.lwri && joints.rwri && joints.relb) {
+                    const midX = (joints.lwri.x + joints.rwri.x) / 2;
+                    const midY = (joints.lwri.y + joints.rwri.y) / 2;
+                    
+                    const armDx = joints.rwri.x - joints.relb.x;
+                    const armDy = joints.rwri.y - joints.relb.y;
+                    const armLen = Math.hypot(armDx, armDy) || 1;
+                    const dx = armDx / armLen;
+                    const dy = armDy / armLen;
+                    
+                    const handleEndX = midX + 15 * dx;
+                    const handleEndY = midY + 15 * dy;
+                    const bladeEndX = handleEndX + 45 * dx;
+                    const bladeEndY = handleEndY + 45 * dy;
+                    
+                    // Grip
+                    ctx.strokeStyle = "#1e293b";
+                    ctx.lineWidth = 3.5;
+                    ctx.beginPath();
+                    ctx.moveTo(midX, midY);
+                    ctx.lineTo(handleEndX, handleEndY);
+                    ctx.stroke();
+                    
+                    // Blade
+                    ctx.strokeStyle = "#d97706";
+                    ctx.lineWidth = 8;
+                    ctx.beginPath();
+                    ctx.moveTo(handleEndX, handleEndY);
+                    ctx.lineTo(bladeEndX, bladeEndY);
+                    ctx.stroke();
+                  }
+
+                  // 4. Core skeleton lines
+                  ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+                  ctx.lineWidth = 2.5;
+                  for (const [ptA, ptB] of bones) {
+                    if (ptA && ptB) {
+                      ctx.beginPath();
+                      ctx.moveTo(ptA.x, ptA.y);
+                      ctx.lineTo(ptB.x, ptB.y);
+                      ctx.stroke();
+                    }
+                  }
+
+                  // 5. Joint Node circles
+                  ctx.fillStyle = "#22c55e";
+                  ctx.strokeStyle = "#ffffff";
+                  ctx.lineWidth = 1.2;
+                  Object.values(joints).forEach((pt) => {
+                    if (pt) {
+                      ctx.beginPath();
+                      ctx.arc(pt.x, pt.y, 4.5, 0, 2 * Math.PI);
+                      ctx.fill();
+                      ctx.stroke();
+                    }
                   });
                 }
                 analyzePose(result.landmarks);
@@ -304,5 +554,5 @@ export function useKinectraAnalysis(
     cancelAnimationFrame(rafRef.current);
   }, []);
 
-  return { isModelLoading, modelError, metrics, startAnalysis, stopAnalysis };
+  return { isModelLoading, modelError, metrics, rawLandmarks, startAnalysis, stopAnalysis };
 }

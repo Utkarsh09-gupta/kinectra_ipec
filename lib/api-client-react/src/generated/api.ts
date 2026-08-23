@@ -21,15 +21,23 @@ import type {
 
 import type {
   ErrorResponse,
+  GetSignatureTrajectory200Item,
   HealthStatus,
   IngestPoses200,
   PoseMatch,
   PoseSearchInput,
+  ProcessSignatureAnalysis200,
+  ProcessSignatureAnalysisInput,
   Session,
   SessionEndInput,
   SessionInput,
   SessionSummary,
-  SynthesizeSpeechParams
+  SignatureMove,
+  SignatureSession,
+  StartSignatureAnalysis201,
+  StartSignatureAnalysisInput,
+  SynthesizeSpeechParams,
+  UploadSignatureVideo200
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -643,4 +651,601 @@ export const useIngestPoses = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getIngestPosesMutationOptions(options));
     }
+
+export const getGetSignatureMovesUrl = () => {
+
+
+
+
+  return `/api/signature-moves`
+}
+
+/**
+ * @summary Retrieve list of signature moves
+ */
+export const getSignatureMoves = async ( options?: RequestInit): Promise<SignatureMove[]> => {
+
+  return customFetch<SignatureMove[]>(getGetSignatureMovesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSignatureMovesQueryKey = () => {
+    return [
+    `/api/signature-moves`
+    ] as const;
+    }
+
+
+export const getGetSignatureMovesQueryOptions = <TData = Awaited<ReturnType<typeof getSignatureMoves>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSignatureMoves>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSignatureMovesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSignatureMoves>>> = ({ signal }) => getSignatureMoves({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSignatureMoves>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSignatureMovesQueryResult = NonNullable<Awaited<ReturnType<typeof getSignatureMoves>>>
+export type GetSignatureMovesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Retrieve list of signature moves
+ */
+
+export function useGetSignatureMoves<TData = Awaited<ReturnType<typeof getSignatureMoves>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSignatureMoves>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSignatureMovesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSignatureMoveDetailsUrl = (id: string,) => {
+
+
+
+
+  return `/api/signature-moves/${id}`
+}
+
+/**
+ * @summary Retrieve specific move details
+ */
+export const getSignatureMoveDetails = async (id: string, options?: RequestInit): Promise<SignatureMove> => {
+
+  return customFetch<SignatureMove>(getGetSignatureMoveDetailsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSignatureMoveDetailsQueryKey = (id: string,) => {
+    return [
+    `/api/signature-moves/${id}`
+    ] as const;
+    }
+
+
+export const getGetSignatureMoveDetailsQueryOptions = <TData = Awaited<ReturnType<typeof getSignatureMoveDetails>>, TError = ErrorType<unknown>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSignatureMoveDetails>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSignatureMoveDetailsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSignatureMoveDetails>>> = ({ signal }) => getSignatureMoveDetails(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSignatureMoveDetails>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSignatureMoveDetailsQueryResult = NonNullable<Awaited<ReturnType<typeof getSignatureMoveDetails>>>
+export type GetSignatureMoveDetailsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Retrieve specific move details
+ */
+
+export function useGetSignatureMoveDetails<TData = Awaited<ReturnType<typeof getSignatureMoveDetails>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSignatureMoveDetails>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSignatureMoveDetailsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getStartSignatureAnalysisUrl = () => {
+
+
+
+
+  return `/api/signature-analysis/start`
+}
+
+/**
+ * @summary Start a signature analysis session
+ */
+export const startSignatureAnalysis = async (startSignatureAnalysisInput: StartSignatureAnalysisInput, options?: RequestInit): Promise<StartSignatureAnalysis201> => {
+
+  return customFetch<StartSignatureAnalysis201>(getStartSignatureAnalysisUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      startSignatureAnalysisInput,)
+  }
+);}
+
+
+
+
+export const getStartSignatureAnalysisMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startSignatureAnalysis>>, TError,{data: BodyType<StartSignatureAnalysisInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startSignatureAnalysis>>, TError,{data: BodyType<StartSignatureAnalysisInput>}, TContext> => {
+
+const mutationKey = ['startSignatureAnalysis'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startSignatureAnalysis>>, {data: BodyType<StartSignatureAnalysisInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  startSignatureAnalysis(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartSignatureAnalysisMutationResult = NonNullable<Awaited<ReturnType<typeof startSignatureAnalysis>>>
+    export type StartSignatureAnalysisMutationBody = BodyType<StartSignatureAnalysisInput>
+    export type StartSignatureAnalysisMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Start a signature analysis session
+ */
+export const useStartSignatureAnalysis = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startSignatureAnalysis>>, TError,{data: BodyType<StartSignatureAnalysisInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startSignatureAnalysis>>,
+        TError,
+        {data: BodyType<StartSignatureAnalysisInput>},
+        TContext
+      > => {
+      return useMutation(getStartSignatureAnalysisMutationOptions(options));
+    }
+
+export const getUploadSignatureVideoUrl = () => {
+
+
+
+
+  return `/api/signature-analysis/upload`
+}
+
+/**
+ * @summary Upload athlete video for analysis
+ */
+export const uploadSignatureVideo = async ( options?: RequestInit): Promise<UploadSignatureVideo200> => {
+
+  return customFetch<UploadSignatureVideo200>(getUploadSignatureVideoUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getUploadSignatureVideoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadSignatureVideo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadSignatureVideo>>, TError,void, TContext> => {
+
+const mutationKey = ['uploadSignatureVideo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadSignatureVideo>>, void> = () => {
+
+
+          return  uploadSignatureVideo(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadSignatureVideoMutationResult = NonNullable<Awaited<ReturnType<typeof uploadSignatureVideo>>>
+
+    export type UploadSignatureVideoMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Upload athlete video for analysis
+ */
+export const useUploadSignatureVideo = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadSignatureVideo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadSignatureVideo>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getUploadSignatureVideoMutationOptions(options));
+    }
+
+export const getProcessSignatureAnalysisUrl = () => {
+
+
+
+
+  return `/api/signature-analysis/process`
+}
+
+/**
+ * @summary Match and calculate signature move score
+ */
+export const processSignatureAnalysis = async (processSignatureAnalysisInput: ProcessSignatureAnalysisInput, options?: RequestInit): Promise<ProcessSignatureAnalysis200> => {
+
+  return customFetch<ProcessSignatureAnalysis200>(getProcessSignatureAnalysisUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      processSignatureAnalysisInput,)
+  }
+);}
+
+
+
+
+export const getProcessSignatureAnalysisMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof processSignatureAnalysis>>, TError,{data: BodyType<ProcessSignatureAnalysisInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof processSignatureAnalysis>>, TError,{data: BodyType<ProcessSignatureAnalysisInput>}, TContext> => {
+
+const mutationKey = ['processSignatureAnalysis'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof processSignatureAnalysis>>, {data: BodyType<ProcessSignatureAnalysisInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  processSignatureAnalysis(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProcessSignatureAnalysisMutationResult = NonNullable<Awaited<ReturnType<typeof processSignatureAnalysis>>>
+    export type ProcessSignatureAnalysisMutationBody = BodyType<ProcessSignatureAnalysisInput>
+    export type ProcessSignatureAnalysisMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Match and calculate signature move score
+ */
+export const useProcessSignatureAnalysis = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof processSignatureAnalysis>>, TError,{data: BodyType<ProcessSignatureAnalysisInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof processSignatureAnalysis>>,
+        TError,
+        {data: BodyType<ProcessSignatureAnalysisInput>},
+        TContext
+      > => {
+      return useMutation(getProcessSignatureAnalysisMutationOptions(options));
+    }
+
+export const getGetSignatureSessionUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/signature-analysis/${sessionId}`
+}
+
+/**
+ * @summary Get signature session details
+ */
+export const getSignatureSession = async (sessionId: string, options?: RequestInit): Promise<SignatureSession> => {
+
+  return customFetch<SignatureSession>(getGetSignatureSessionUrl(sessionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSignatureSessionQueryKey = (sessionId: string,) => {
+    return [
+    `/api/signature-analysis/${sessionId}`
+    ] as const;
+    }
+
+
+export const getGetSignatureSessionQueryOptions = <TData = Awaited<ReturnType<typeof getSignatureSession>>, TError = ErrorType<unknown>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSignatureSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSignatureSessionQueryKey(sessionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSignatureSession>>> = ({ signal }) => getSignatureSession(sessionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(sessionId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSignatureSession>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSignatureSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getSignatureSession>>>
+export type GetSignatureSessionQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get signature session details
+ */
+
+export function useGetSignatureSession<TData = Awaited<ReturnType<typeof getSignatureSession>>, TError = ErrorType<unknown>>(
+ sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSignatureSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSignatureSessionQueryOptions(sessionId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSignatureTrajectoryUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/signature-analysis/${sessionId}/trajectory`
+}
+
+/**
+ * @summary Get aligned frame comparisons
+ */
+export const getSignatureTrajectory = async (sessionId: string, options?: RequestInit): Promise<GetSignatureTrajectory200Item[]> => {
+
+  return customFetch<GetSignatureTrajectory200Item[]>(getGetSignatureTrajectoryUrl(sessionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSignatureTrajectoryQueryKey = (sessionId: string,) => {
+    return [
+    `/api/signature-analysis/${sessionId}/trajectory`
+    ] as const;
+    }
+
+
+export const getGetSignatureTrajectoryQueryOptions = <TData = Awaited<ReturnType<typeof getSignatureTrajectory>>, TError = ErrorType<unknown>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSignatureTrajectory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSignatureTrajectoryQueryKey(sessionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSignatureTrajectory>>> = ({ signal }) => getSignatureTrajectory(sessionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(sessionId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSignatureTrajectory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSignatureTrajectoryQueryResult = NonNullable<Awaited<ReturnType<typeof getSignatureTrajectory>>>
+export type GetSignatureTrajectoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get aligned frame comparisons
+ */
+
+export function useGetSignatureTrajectory<TData = Awaited<ReturnType<typeof getSignatureTrajectory>>, TError = ErrorType<unknown>>(
+ sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSignatureTrajectory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSignatureTrajectoryQueryOptions(sessionId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSignatureHistoryUrl = () => {
+
+
+
+
+  return `/api/signature-analysis/history`
+}
+
+/**
+ * @summary Get recent signature sessions
+ */
+export const getSignatureHistory = async ( options?: RequestInit): Promise<SignatureSession[]> => {
+
+  return customFetch<SignatureSession[]>(getGetSignatureHistoryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSignatureHistoryQueryKey = () => {
+    return [
+    `/api/signature-analysis/history`
+    ] as const;
+    }
+
+
+export const getGetSignatureHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getSignatureHistory>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSignatureHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSignatureHistoryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSignatureHistory>>> = ({ signal }) => getSignatureHistory({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSignatureHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSignatureHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getSignatureHistory>>>
+export type GetSignatureHistoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get recent signature sessions
+ */
+
+export function useGetSignatureHistory<TData = Awaited<ReturnType<typeof getSignatureHistory>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSignatureHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSignatureHistoryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 

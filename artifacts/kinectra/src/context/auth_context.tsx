@@ -7,22 +7,24 @@ export interface UserProfile {
   skillLevel: "beginner" | "intermediate" | "advanced";
   dominantHand: "right" | "left";
   sportsAcademy?: string;
+  role?: "athlete" | "coach";
 }
 
 interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
-  login: (username: string, password?: string) => Promise<boolean>;
+  login: (username: string, password?: string, role?: "athlete" | "coach") => Promise<boolean>;
   signup: (
     username: string,
     email: string,
     skillLevel: "beginner" | "intermediate" | "advanced",
     dominantHand: "right" | "left",
     sportsAcademy?: string,
-    password?: string
+    password?: string,
+    role?: "athlete" | "coach"
   ) => Promise<boolean>;
-  loginWithGoogle: (credential: string) => Promise<boolean>;
-  loginAsGuest: () => void;
+  loginWithGoogle: (credential: string, role?: "athlete" | "coach") => Promise<boolean>;
+  loginAsGuest: (role?: "athlete" | "coach") => void;
   logout: () => void;
 }
 
@@ -46,7 +48,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
           if (res.ok) {
             const profile = await res.json();
-            setUser(profile);
+            const storedRole = (localStorage.getItem("kinectra_role") as "athlete" | "coach") || "athlete";
+            setUser({ ...profile, role: storedRole });
             setIsLoading(false);
             return;
           } else {
@@ -56,12 +59,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const isGuest = localStorage.getItem("kinectra_guest") === "true";
         if (isGuest) {
+          const storedRole = (localStorage.getItem("kinectra_role") as "athlete" | "coach") || "athlete";
           setUser({
             id: "guest",
-            username: "Guest Athlete",
-            email: "guest@kinectra.local",
+            username: storedRole === "coach" ? "Guest Coach" : "Guest Athlete",
+            email: storedRole === "coach" ? "coach@kinectra.local" : "guest@kinectra.local",
             skillLevel: "intermediate",
             dominantHand: "right",
+            role: storedRole,
           });
         }
       } catch (e) {
@@ -73,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchMe();
   }, [API_BASE_URL]);
 
-  const login = async (username: string, password?: string): Promise<boolean> => {
+  const login = async (username: string, password?: string, role: "athlete" | "coach" = "athlete"): Promise<boolean> => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
@@ -84,8 +89,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (res.ok) {
         const { token, user: profile } = await res.json();
-        setUser(profile);
         localStorage.setItem("kinectra_token", token);
+        localStorage.setItem("kinectra_role", role);
+        setUser({ ...profile, role });
         return true;
       }
       return false;
@@ -100,7 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     skillLevel: "beginner" | "intermediate" | "advanced",
     dominantHand: "right" | "left",
     sportsAcademy?: string,
-    password?: string
+    password?: string,
+    role: "athlete" | "coach" = "athlete"
   ): Promise<boolean> => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
@@ -119,8 +126,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (res.ok) {
         const { token, user: profile } = await res.json();
-        setUser(profile);
         localStorage.setItem("kinectra_token", token);
+        localStorage.setItem("kinectra_role", role);
+        setUser({ ...profile, role });
         return true;
       }
       return false;
@@ -129,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loginWithGoogle = async (credential: string): Promise<boolean> => {
+  const loginWithGoogle = async (credential: string, role: "athlete" | "coach" = "athlete"): Promise<boolean> => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/google`, {
         method: "POST",
@@ -140,8 +148,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (res.ok) {
         const { token, user: profile } = await res.json();
-        setUser(profile);
         localStorage.setItem("kinectra_token", token);
+        localStorage.setItem("kinectra_role", role);
+        setUser({ ...profile, role });
         return true;
       }
       return false;
@@ -150,22 +159,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loginAsGuest = () => {
+  const loginAsGuest = (role: "athlete" | "coach" = "athlete") => {
     const guestUser: UserProfile = {
       id: "guest",
-      username: "Guest Athlete",
-      email: "guest@kinectra.local",
+      username: role === "coach" ? "Guest Coach" : "Guest Athlete",
+      email: role === "coach" ? "coach@kinectra.local" : "guest@kinectra.local",
       skillLevel: "intermediate",
       dominantHand: "right",
+      role,
     };
     setUser(guestUser);
     localStorage.setItem("kinectra_guest", "true");
+    localStorage.setItem("kinectra_role", role);
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("kinectra_token");
     localStorage.removeItem("kinectra_guest");
+    localStorage.removeItem("kinectra_role");
   };
 
   return (

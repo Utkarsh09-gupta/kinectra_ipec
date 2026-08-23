@@ -12,4 +12,6 @@ export type SessionAnalysisType = typeof SessionAnalysisType[keyof typeof Sessio
 export const SessionAnalysisType = {
   bowling: 'bowling',
   batting: 'batting',
+  basketball: 'basketball',
+  badminton: 'badminton',
 } as const;

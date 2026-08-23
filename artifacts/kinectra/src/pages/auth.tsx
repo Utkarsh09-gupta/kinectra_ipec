@@ -10,6 +10,7 @@ import { KinectraLogoSVG } from "@/components/layout/kinectra_logo";
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [role, setRole] = useState<"athlete" | "coach">("athlete");
   const [, setLocation] = useLocation();
   const { login, signup, loginWithGoogle, loginAsGuest } = useAuth();
   const { toast } = useToast();
@@ -19,6 +20,7 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [sportsAcademy, setSportsAcademy] = useState("");
+  const [sport, setSport] = useState<"cricket" | "badminton" | "basketball">("cricket");
   const [skillLevel, setSkillLevel] = useState<"beginner" | "intermediate" | "advanced">("intermediate");
   const [dominantHand, setDominantHand] = useState<"right" | "left">("right");
   const [isLoading, setIsLoading] = useState(false);
@@ -61,13 +63,13 @@ export default function Auth() {
         callback: async (response: any) => {
           setIsLoading(true);
           try {
-            const success = await loginWithGoogle(response.credential);
+            const success = await loginWithGoogle(response.credential, role);
             if (success) {
               toast({
                 title: "Welcome Back!",
-                description: "Signed in successfully with Google.",
+                description: `Signed in successfully with Google as ${role === "coach" ? "Coach" : "Athlete"}.`,
               });
-              setLocation("/setup");
+              setLocation(role === "coach" ? "/coach" : "/setup");
             } else {
               toast({
                 title: "Authentication Failed",
@@ -126,13 +128,13 @@ export default function Auth() {
 
     try {
       if (activeTab === "login") {
-        const success = await login(username.trim(), password.trim());
+        const success = await login(username.trim(), password.trim(), role);
         if (success) {
           toast({
             title: "Welcome Back!",
-            description: `Successfully signed in as ${username}.`,
+            description: `Successfully signed in as ${username} (${role === "coach" ? "Coach" : "Athlete"}).`,
           });
-          setLocation("/setup");
+          setLocation(role === "coach" ? "/coach" : "/setup");
         } else {
           toast({
             title: "Access Denied",
@@ -151,13 +153,14 @@ export default function Auth() {
           return;
         }
 
-        const success = await signup(username.trim(), email.trim(), skillLevel, dominantHand, sportsAcademy.trim(), password.trim());
+        const success = await signup(username.trim(), email.trim(), skillLevel, dominantHand, sportsAcademy.trim(), password.trim(), role);
         if (success) {
+          localStorage.setItem("kinectra_sport", sport);
           toast({
             title: "Profile Created",
-            description: "Your athlete account has been registered.",
+            description: `Your ${role === "coach" ? "Coach" : "Athlete"} account has been registered.`,
           });
-          setLocation("/setup");
+          setLocation(role === "coach" ? "/coach" : "/setup");
         } else {
           toast({
             title: "Registration Failed",
@@ -178,12 +181,12 @@ export default function Auth() {
   };
 
   const handleGuestContinue = () => {
-    loginAsGuest();
+    loginAsGuest(role);
     toast({
       title: "Guest Session Started",
-      description: "Entering dashboard as Guest Athlete.",
+      description: `Entering dashboard as Guest ${role === "coach" ? "Coach" : "Athlete"}.`,
     });
-    setLocation("/setup");
+    setLocation(role === "coach" ? "/coach" : "/setup");
   };
 
 
@@ -235,13 +238,34 @@ export default function Auth() {
                 Create Profile
               </button>
             </div>
+            {/* Role Switch Select Dropdown */}
+            <div className="relative mb-4 select-none">
+              <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                Portal Target Role
+              </label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as any)}
+                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all [&>option]:bg-card"
+              >
+                <option value="athlete">Athlete Portal</option>
+                <option value="coach">Coach Portal</option>
+              </select>
+            </div>
+            
             <CardTitle className="text-xl font-bold tracking-tight text-foreground">
-              {activeTab === "login" ? "Welcome Athlete" : "Register Profile"}
+              {activeTab === "login" 
+                ? (role === "coach" ? "Coach Portal Login" : "Welcome Athlete") 
+                : (role === "coach" ? "Register Coach Profile" : "Register Profile")}
             </CardTitle>
             <CardDescription className="text-muted-foreground text-xs">
               {activeTab === "login" 
-                ? "Enter your athlete username to load your stats and calibration details." 
-                : "Configure your profile metadata to receive tailored joint stress metrics."}
+                ? (role === "coach" 
+                    ? "Access your dashboard to review shared biometric sessions." 
+                    : "Enter your athlete username to load your stats and calibration details.") 
+                : (role === "coach"
+                    ? "Register your credentials to audit and coach assigned athletes."
+                    : "Configure your profile metadata to receive tailored joint stress metrics.")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -313,6 +337,22 @@ export default function Auth() {
                         className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 placeholder:text-muted-foreground/45 transition-all"
                       />
                     </div>
+                    
+                    {/* Primary Sport Selector */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <Activity className="h-3.5 w-3.5" /> Primary Sport
+                      </label>
+                      <select
+                        value={sport}
+                        onChange={(e) => setSport(e.target.value as any)}
+                        className="w-full bg-background border border-border rounded-xl px-3 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all [&>option]:bg-card"
+                      >
+                        <option value="cricket">Cricket</option>
+                        <option value="badminton">Badminton</option>
+                        <option value="basketball">Basketball</option>
+                      </select>
+                    </div>
 
                     {/* Cricket Metadata Row */}
                     <div className="grid grid-cols-2 gap-4">
@@ -361,8 +401,8 @@ export default function Auth() {
                 {isLoading 
                   ? "Authenticating..." 
                   : activeTab === "login" 
-                    ? "Access Dashboard" 
-                    : "Create Athlete Profile"}
+                    ? `Access ${role === "coach" ? "Coach" : "Athlete"} Dashboard` 
+                    : `Create ${role === "coach" ? "Coach" : "Athlete"} Profile`}
               </Button>
             </form>
 
@@ -387,7 +427,7 @@ export default function Auth() {
                 className="w-full h-12 rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
               >
                 <User className="h-4 w-4" />
-                Continue as Guest
+                {role === "coach" ? "Continue as Guest Coach" : "Continue as Guest Athlete"}
               </Button>
             </div>
           </CardContent>

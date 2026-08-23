@@ -15,6 +15,8 @@ export type SessionInputAnalysisType = typeof SessionInputAnalysisType[keyof typ
 export const SessionInputAnalysisType = {
   bowling: 'bowling',
   batting: 'batting',
+  basketball: 'basketball',
+  badminton: 'badminton',
 } as const;
 
 export type SessionInputSkillLevel = typeof SessionInputSkillLevel[keyof typeof SessionInputSkillLevel];
@@ -48,6 +50,8 @@ export type SessionAnalysisType = typeof SessionAnalysisType[keyof typeof Sessio
 export const SessionAnalysisType = {
   bowling: 'bowling',
   batting: 'batting',
+  basketball: 'basketball',
+  badminton: 'badminton',
 } as const;
 
 export type SessionSkillLevel = typeof SessionSkillLevel[keyof typeof SessionSkillLevel];
@@ -118,6 +122,8 @@ export type SessionSummaryAnalysisType = typeof SessionSummaryAnalysisType[keyof
 export const SessionSummaryAnalysisType = {
   bowling: 'bowling',
   batting: 'batting',
+  basketball: 'basketball',
+  badminton: 'badminton',
 } as const;
 
 export type SessionSummarySkillLevel = typeof SessionSummarySkillLevel[keyof typeof SessionSummarySkillLevel];
@@ -192,6 +198,48 @@ export interface PoseSearchInput {
   poseVector: number[];
 }
 
+export interface SignatureMove {
+  id: string;
+  playerName: string;
+  moveName: string;
+  category: string;
+  focusAreas: string[];
+  difficulty: string;
+  description: string;
+  referencePoseSequenceJson: string;
+}
+
+export interface SignatureSession {
+  id: string;
+  userId: string;
+  athleteName: string;
+  referenceMoveId: string;
+  timestamp: string;
+  score: number;
+  trajectorySimilarity: number;
+  biomechanicalAccuracy: number;
+  timingScore: number;
+  stabilityScore: number;
+  warnings: string[];
+  analysisDataJson: string;
+}
+
+export interface StartSignatureAnalysisInput {
+  athleteName: string;
+  referenceMoveId: string;
+  userId?: string;
+}
+
+export type ProcessSignatureAnalysisInputPoseSequenceItem = { [key: string]: unknown };
+
+export interface ProcessSignatureAnalysisInput {
+  sessionId: string;
+  referenceMoveId: string;
+  athleteName?: string;
+  userId?: string;
+  poseSequence: ProcessSignatureAnalysisInputPoseSequenceItem[];
+}
+
 export type SynthesizeSpeechParams = {
 text: string;
 };
@@ -200,4 +248,27 @@ export type IngestPoses200 = {
   status?: string;
   message?: string;
 };
+
+export type StartSignatureAnalysis201 = {
+  id?: string;
+  athleteName?: string;
+  referenceMoveId?: string;
+};
+
+export type UploadSignatureVideo200 = {
+  status?: string;
+  videoName?: string;
+};
+
+export type ProcessSignatureAnalysis200 = {
+  status?: string;
+  sessionId?: string;
+  overallScore?: number;
+  similarity?: number;
+  accuracy?: number;
+  timing?: number;
+  stability?: number;
+};
+
+export type GetSignatureTrajectory200Item = { [key: string]: unknown };
 

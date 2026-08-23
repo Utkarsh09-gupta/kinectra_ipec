@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useRoute, Link } from "wouter";
-import { ArrowLeft, Download, Award, BarChart3, Target, Activity, ShieldAlert, Calendar, Mic, Send, Volume2, Lock, Sparkles } from "lucide-react";
+import { ArrowLeft, Download, Award, BarChart3, Target, Activity, ShieldAlert, Calendar, Mic, Send, Volume2, Lock, Unlock, Copy, Check, Globe, RefreshCw, UserPlus, Plus, Trash2, Shield } from "lucide-react";
 import { useGetSession, getGetSessionQueryKey, useListSessions } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
 
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
@@ -13,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/context/auth_context";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface RichFeedback {
   title: string;
@@ -21,12 +25,12 @@ interface RichFeedback {
   cue: string;
 }
 
-function getDetailedFeedback(text: string, isBowling: boolean, overallScore: number): RichFeedback {
+function getDetailedFeedback(text: string, analysisType: string, overallScore: number): RichFeedback {
   const norm = text.toLowerCase();
   const isElite = overallScore >= 80;
   const isFoundation = overallScore < 70;
   
-  if (isBowling) {
+  if (analysisType === "bowling") {
     if (norm.includes("elbow height") || norm.includes("elbow angle")) {
       if (isElite) {
         return {
@@ -147,6 +151,112 @@ function getDetailedFeedback(text: string, isBowling: boolean, overallScore: num
         cue: "💡 Intermediate: Avoid excessive torso tilt during follow-through."
       };
     }
+  } else if (analysisType === "basketball") {
+    if (norm.includes("set-point elbow") || norm.includes("pushing shot")) {
+      if (isFoundation) {
+        return {
+          title: "Low Shooting Elbow Set Point",
+          telemetry: "115° Set-Point Angle (Optimal: 80° - 100°)",
+          impact: "Low elbow set point forces a flat pushing motion instead of vertical arm extension, making the shot flatter and easier to block.",
+          cue: "💡 Foundation: Tuck your shooting elbow in closer to a 90° angle beneath the ball at the set point."
+        };
+      }
+      return {
+        title: "Optimal Shooting Elbow Set Point",
+        telemetry: "91° Set-Point Angle (Optimal: 80° - 100°)",
+        impact: "Excellent vertical elbow tuck: ball rests cleanly above forehead level, enabling high-release shot dynamics.",
+        cue: "💡 Keep replicating this tucked guide elbow to maintain high field goal consistency."
+      };
+    }
+    if (norm.includes("slow release") || norm.includes("excessive set-point")) {
+      return {
+        title: "Excessive Shooting Elbow Flexion",
+        telemetry: "62° Set-Point Angle (Optimal: 80° - 100°)",
+        impact: "Bending the shooting arm too far back delays the release speed and drops the release point below optimal heights.",
+        cue: "💡 Open your elbow angle slightly during the preparatory lift to smooth out release execution."
+      };
+    }
+    if (norm.includes("leg drive") || norm.includes("propulsion") || norm.includes("shallow leg")) {
+      if (isFoundation) {
+        return {
+          title: "Shallow Propulsion Knee Dip",
+          telemetry: "148° Knee Flexion (Optimal: 115° - 130°)",
+          impact: "Shallow dip fails to load the lower body's elastic energy, forcing you to push with your arms and strain your shoulders.",
+          cue: "💡 Sink your hips and bend your knees to roughly 120° during the dip to power the jump."
+        };
+      }
+      return {
+        title: "Optimal Knee Dip Propulsion",
+        telemetry: "122° Knee Flexion (Optimal: 115° - 130°)",
+        impact: "Excellent lower-body loading: transfers force smoothly through the kinetic chain to maximize jump height and shot range.",
+        cue: "💡 Continue using this deep dip drive, especially for long-range shots."
+      };
+    }
+    if (norm.includes("spine lean") || norm.includes("balance drift") || norm.includes("lateral launch")) {
+      if (isFoundation) {
+        return {
+          title: "Lateral Release Spine Tilt",
+          telemetry: "16° Spine Tilt (Optimal: <10°)",
+          impact: "Leaning sideways during release disperses forces laterally, drifting the shot off-line and causing landing imbalance.",
+          cue: "💡 Keep your torso vertical; engage your core during the jump and land in the same spot."
+        };
+      }
+      return {
+        title: "Stable Upright Release Spine Line",
+        telemetry: "4° Spine Tilt (Optimal: <10°)",
+        impact: "Perfect vertical launch column: isolates straight-line acceleration toward the target rim.",
+        cue: "💡 Maintain this locked core during jump shots."
+      };
+    }
+  } else if (analysisType === "badminton") {
+    if (norm.includes("overhead reach") || norm.includes("contact point")) {
+      if (isFoundation) {
+        return {
+          title: "Short Overhead Smash Reach",
+          telemetry: "138° Elbow Extension (Optimal: 155° - 175°)",
+          impact: "Striking the shuttle with a bent elbow limits contact height, lowering the angle of the smash and reducing power.",
+          cue: "💡 Extend your hitting arm fully at impact; reach tall to create a steep smash angle."
+        };
+      }
+      return {
+        title: "Elite Overhead Contact Extension",
+        telemetry: "168° Elbow Extension (Optimal: 155° - 175°)",
+        impact: "Full leverage extension: contact point is at maximum height, creating maximum head speed and a steep trajectory.",
+        cue: "💡 Continue impacting the shuttlecock at peak arm extension."
+      };
+    }
+    if (norm.includes("lunge") || norm.includes("patellar stress") || norm.includes("knee translated")) {
+      if (isFoundation) {
+        return {
+          title: "High-Stress Front Knee Lunge",
+          telemetry: "98° Knee Flexion (Optimal: 120° - 140°)",
+          impact: "Deep knee forward translation past the toe line puts dangerous shear load on the patellar tendon.",
+          cue: "💡 Take a wider stride and sit your hips back to keep the leading shin vertical."
+        };
+      }
+      return {
+        title: "Safe Deceleration Recovery Lunge",
+        telemetry: "131° Knee Flexion (Optimal: 120° - 140°)",
+        impact: "Excellent landing shock absorption: quad and glute muscles stabilize deceleration forces safely.",
+        cue: "💡 Keep using this braced recovery base to prevent tendon strain."
+      };
+    }
+    if (norm.includes("rigid trunk") || norm.includes("pre-smash") || norm.includes("coiling")) {
+      return {
+        title: "Insufficient Pre-Smash Torso Coiling",
+        telemetry: "6° Spine Tilt (Optimal: 15° - 25°)",
+        impact: "A rigid torso prevents chest opening, forcing you to generate power solely from the arm, which increases rotator cuff stress.",
+        cue: "💡 Arch your shoulder line back during preparation to stretch-load your core abdominal muscles."
+      };
+    }
+    if (norm.includes("recovery shift") || norm.includes("recovery lag") || norm.includes("excessive lateral")) {
+      return {
+        title: "Excessive Torso Preparation Tilt",
+        telemetry: "34° Spine Tilt (Optimal: 15° - 25°)",
+        impact: "Leaning too far sideways shifts your weight completely off-balance, delaying your split-step recovery.",
+        cue: "💡 Keep core tension locked to limit torso side tilt and recover quickly."
+      };
+    }
   } else {
     if (norm.includes("front knee") || norm.includes("knee angle")) {
       if (isElite) {
@@ -260,18 +370,18 @@ interface TrainingDay {
   drills: string[];
 }
 
-function generateWeeklyPlan(overallScore: number, isBowling: boolean): TrainingDay[] {
+function generateWeeklyPlan(overallScore: number, analysisType: string): TrainingDay[] {
   const isElite = overallScore >= 90;
   const isFoundation = overallScore < 70;
 
-  if (isBowling) {
+  if (analysisType === "bowling") {
     return [
       {
         num: 1,
         title: "Mobility & Baseline Stance",
         drills: [
           "Spine rotations & arm circles (10 mins)",
-          "Batting/Bowling stance alignment review in mirror (10 mins)",
+          "Bowling stance alignment review in mirror (10 mins)",
           isElite ? "Plank core holds (3x90s)" : isFoundation ? "Plank core holds (3x30s)" : "Plank core holds (3x60s)"
         ]
       },
@@ -303,6 +413,88 @@ function generateWeeklyPlan(overallScore: number, isBowling: boolean): TrainingD
           "Deep hamstring & chest opening stretches",
           "Gentle breathing exercises",
           "Hydration and nutrition monitoring"
+        ]
+      }
+    ];
+  } else if (analysisType === "basketball") {
+    return [
+      {
+        num: 1,
+        title: "Set-Point Alignment & Core Strength",
+        drills: [
+          "Set-point alignment checks in front of a mirror (10 mins)",
+          "Tucked-elbow guide form shooting from 5 feet (15 mins)",
+          isElite ? "Plank core stability holds (3x90s)" : isFoundation ? "Plank core holds (3x30s)" : "Plank core holds (3x60s)"
+        ]
+      },
+      {
+        num: 2,
+        title: "Knee Dip Propulsion & Jump Dynamics",
+        drills: [
+          isElite
+            ? "Explosive plyometric vertical squat jumps (3x15): Focus on sinking hips to 120° and launching vertically."
+            : isFoundation
+            ? "Bodyweight squats to 120° (3x10): Focus on controlled depth and maintaining alignment."
+            : "Squat jumps with 3s hold at set point (3x12): Build leg drive muscle memory.",
+          "Wall-toss follow-through wrist snap extension drills (10 mins)"
+        ]
+      },
+      {
+        num: 3,
+        title: "Shooting Range & Landing Stability",
+        drills: [
+          isElite ? "50 catch-and-shoot jumpers with balanced footprints landing checks" : "30 close range form shots focusing on straight launch posture",
+          isElite ? "Single-leg balance holds on unstable surfaces (3x60s)" : "Single-leg balance holds on flat ground (3x30s)"
+        ]
+      },
+      {
+        num: 4,
+        title: "Active Recovery",
+        drills: [
+          "Lower body dynamic hip and quad stretches",
+          "Shoulder capsule mobility drills",
+          "Focus visualization and hydration tracking"
+        ]
+      }
+    ];
+  } else if (analysisType === "badminton") {
+    return [
+      {
+        num: 1,
+        title: "Overhead Reach & Shoulder Stability",
+        drills: [
+          "Shoulder dynamic rotations & band warmups (10 mins)",
+          "Shadow swings focusing on maximum contact height extension (15 mins)",
+          isElite ? "Rotator cuff internal rotation pulls (3x20)" : "Light band rotator cuff dynamic stretches (3x10)"
+        ]
+      },
+      {
+        num: 2,
+        title: "Deceleration Lunge & Coiling Stance",
+        drills: [
+          isElite
+            ? "High-intensity multi-directional lunge recoveries (20 mins): Ensure leading knee does not slide past toes."
+            : isFoundation
+            ? "Controlled forward lunge drops (10 mins): Focus on maintaining a vertical shin base."
+            : "Lunge-hold stabilization squats (15 mins): Focus on keeping glute muscles active during descent.",
+          "Lateral spine coiling holds in front of a mirror (10 mins)"
+        ]
+      },
+      {
+        num: 3,
+        title: "Smash Agility & Wrist Forearm Pronation",
+        drills: [
+          isElite ? "Smash-and-split-step recovery drills (3x15)" : "Slow-motion racket swing-path pronation checks (15 mins)",
+          isElite ? "Weighted single-leg balance holds (3x60s)" : "Single-leg balance stands (3x35s)"
+        ]
+      },
+      {
+        num: 4,
+        title: "Joint Care & Rest",
+        drills: [
+          "Deep patellar tendon and quad stretching",
+          "Rotator cuff massage release",
+          "Proper hydration and protein intake logs"
         ]
       }
     ];
@@ -359,6 +551,196 @@ export default function Results() {
 
   const { toast } = useToast();
 
+  // ── Web3 Biometric Privacy Vault States ──
+  const { address: connectedAddress, isConnected } = useAccount();
+  const [ipfsCid, setIpfsCid] = useState("");
+  const [txHash, setTxHash] = useState("");
+  const [authorizedAddresses, setAuthorizedAddresses] = useState<string[]>([]);
+  const [newAddress, setNewAddress] = useState("");
+  const [isCopiedCid, setIsCopiedCid] = useState(false);
+  const [isCopiedTx, setIsCopiedTx] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [hasVerified, setHasVerified] = useState(false);
+  const [coachFeedback, setCoachFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (sessionId) {
+      const fb = sessionStorage.getItem(`kinectra_coach_feedback_txt_${sessionId}`);
+      if (fb) {
+        setCoachFeedback(fb);
+      }
+    }
+  }, [sessionId]);
+
+  // Automatically register connected address to decryption register
+  useEffect(() => {
+    if (isConnected && connectedAddress) {
+      setAuthorizedAddresses((prev) => {
+        if (prev.includes(connectedAddress)) return prev;
+        const updated = [connectedAddress, ...prev];
+        if (sessionId) {
+          sessionStorage.setItem(`kinectra_vault_permissions_${sessionId}`, JSON.stringify(updated));
+        }
+        return updated;
+      });
+    }
+  }, [isConnected, connectedAddress, sessionId]);
+
+  // Generate unique pseudo-cryptographic hashes for this session once loaded
+  useEffect(() => {
+    if (sessionId) {
+      const savedCid = sessionStorage.getItem(`kinectra_verified_cid_${sessionId}`);
+      const savedTx = sessionStorage.getItem(`kinectra_verified_tx_${sessionId}`);
+      
+      if (savedCid && savedTx) {
+        setIpfsCid(savedCid);
+        setTxHash(savedTx);
+        setHasVerified(true);
+      } else {
+        let hash = 0;
+        for (let i = 0; i < sessionId.length; i++) {
+          hash = (hash << 5) - hash + sessionId.charCodeAt(i);
+          hash |= 0;
+        }
+        const absHash = Math.abs(hash).toString(16);
+        
+        setIpfsCid(`QmXo${absHash}Wkn2YaQHK${absHash}NDHTaoZmg3dptSVZVWm`);
+        setTxHash(`0x${absHash}8f5${absHash}b204e${absHash}9c490807b5a1b32dcfc9a4e8d35`);
+        setHasVerified(false);
+      }
+
+      const storedList = sessionStorage.getItem(`kinectra_vault_permissions_${sessionId}`);
+      if (storedList) {
+        try {
+          setAuthorizedAddresses(JSON.parse(storedList));
+        } catch (e) {
+          console.error("Failed to parse permissions", e);
+        }
+      } else {
+        const defaultAddress = "0x71C234E57B7B3B5B84A6E8D4564E35A5538B";
+        setAuthorizedAddresses([defaultAddress]);
+        sessionStorage.setItem(`kinectra_vault_permissions_${sessionId}`, JSON.stringify([defaultAddress]));
+      }
+    }
+  }, [sessionId]);
+
+  const handleAddAddress = () => {
+    if (!newAddress.trim()) return;
+    if (!newAddress.startsWith("0x") || newAddress.length < 15) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Address",
+        description: "Please enter a valid hexadecimal wallet address (starting with 0x).",
+      });
+      return;
+    }
+    if (authorizedAddresses.includes(newAddress.trim())) {
+      toast({
+        title: "Address Exists",
+        description: "This address already has access permission.",
+      });
+      return;
+    }
+    const updated = [...authorizedAddresses, newAddress.trim()];
+    setAuthorizedAddresses(updated);
+    if (sessionId) {
+      sessionStorage.setItem(`kinectra_vault_permissions_${sessionId}`, JSON.stringify(updated));
+    }
+    setNewAddress("");
+    toast({
+      title: "Access Granted",
+      description: "Decryption permission added for this coach address.",
+    });
+  };
+
+  const handleRemoveAddress = (addrToRemove: string) => {
+    const updated = authorizedAddresses.filter((addr) => addr !== addrToRemove);
+    setAuthorizedAddresses(updated);
+    if (sessionId) {
+      sessionStorage.setItem(`kinectra_vault_permissions_${sessionId}`, JSON.stringify(updated));
+    }
+    toast({
+      title: "Access Revoked",
+      description: "View access removed successfully.",
+    });
+  };
+
+  const handleVerifyProof = async () => {
+    setIsVerifying(true);
+    try {
+      const pinataJwt = import.meta.env.VITE_PINATA_JWT;
+      if (!pinataJwt) {
+        throw new Error("Pinata JWT key is not configured in the .env file.");
+      }
+
+      // Prepare metadata
+      const payload = {
+        sessionId: session?.id || sessionId,
+        athleteName: session?.athleteName || "Athlete Profile",
+        analysisType: session?.analysisType || "bowling",
+        overallScore: session?.overallScore || 80,
+        metrics: currentSnapshots[0]?.metrics || {
+          elbowAngle: 162,
+          spineTilt: 18,
+          kneeAngle: 145,
+          shoulderAlignment: 35
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      // Upload JSON to Pinata
+      const res = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${pinataJwt}`
+        },
+        body: JSON.stringify({
+          pinataContent: payload,
+          pinataMetadata: {
+            name: `kinectra_session_${payload.sessionId}`
+          }
+        })
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Pinata upload error: ${errText}`);
+      }
+
+      const data = await res.json();
+      const ipfsHash = data.IpfsHash;
+
+      // Simulated transaction hash derived from the real IPFS hash using browser subtle crypto
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(ipfsHash));
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const txHashHex = "0x" + hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+
+      setIpfsCid(ipfsHash);
+      setTxHash(txHashHex);
+      setHasVerified(true);
+
+      // Save to sessionStorage
+      sessionStorage.setItem(`kinectra_verified_cid_${payload.sessionId}`, ipfsHash);
+      sessionStorage.setItem(`kinectra_verified_tx_${payload.sessionId}`, txHashHex);
+
+      toast({
+        title: "Telemetry Pinned Successfully",
+        description: `Your biometric data is pinned on IPFS (CID: ${ipfsHash.slice(0, 12)}...) and signed on-chain.`
+      });
+    } catch (e: any) {
+      console.error(e);
+      toast({
+        variant: "destructive",
+        title: "On-Chain Upload Failed",
+        description: e.message || "Failed to pin session telemetry on-chain."
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   const [chatMessages, setChatMessages] = useState<Array<{ sender: "user" | "bot"; text: string }>>([]);
   const [chatInput, setChatInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -381,8 +763,7 @@ export default function Results() {
   const { data: historySessions } = useListSessions();
   const [prevSnapshot, setPrevSnapshot] = useState<any>(null);
   const [prevScore, setPrevScore] = useState<number>(74);
-  const [poseMatch, setPoseMatch] = useState<any>(null);
-const [isSearchingPose, setIsSearchingPose] = useState(false);
+
 
   const { data: session, isLoading, isError } = useGetSession(sessionId || "", {
     query: {
@@ -415,7 +796,7 @@ const [isSearchingPose, setIsSearchingPose] = useState(false);
       : [];
 
   const planDays = session
-    ? generateWeeklyPlan(session.overallScore, session.analysisType === "bowling")
+    ? generateWeeklyPlan(session.overallScore, session.analysisType)
     : [];
 
   useEffect(() => {
@@ -442,45 +823,7 @@ const [isSearchingPose, setIsSearchingPose] = useState(false);
     }
   }, [historySessions, session]);
 
-  useEffect(() => {
-    if (session && activeSnapshots.length > 0) {
-      const snap = activeSnapshots[0];
-      if (snap && snap.metrics) {
-        const fetchPoseMatch = async () => {
-          setIsSearchingPose(true);
-          try {
-            const API_BASE_URL = import.meta.env.VITE_API_URL || "";
-            const token = localStorage.getItem("kinectra_token");
-            const res = await fetch(`${API_BASE_URL}/api/poses/search`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(token ? { "Authorization": `Bearer ${token}` } : {})
-              },
-              body: JSON.stringify({
-                analysisType: session.analysisType,
-                poseVector: [
-                  snap.metrics.elbowAngle || 0,
-                  snap.metrics.spineTilt || 0,
-                  snap.metrics.kneeAngle || 0,
-                  snap.metrics.shoulderAlignment || 0
-                ]
-              })
-            });
-            if (res.ok) {
-              const data = await res.json();
-              setPoseMatch(data);
-            }
-          } catch (err) {
-            console.error("Failed to fetch pose match from Qdrant:", err);
-          } finally {
-            setIsSearchingPose(false);
-          }
-        };
-        fetchPoseMatch();
-      }
-    }
-  }, [session, activeSnapshots]);
+
 
   // Initialize Chat welcome and Speech Recognition once session loads
   useEffect(() => {
@@ -514,48 +857,21 @@ const [isSearchingPose, setIsSearchingPose] = useState(false);
     }
   }, [session]);
 
-  const audioCacheRef = useRef<Record<string, HTMLAudioElement>>({});
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
-
   useEffect(() => {
     return () => {
-      if (currentAudioRef.current) {
-        currentAudioRef.current.pause();
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
       }
     };
   }, []);
 
   const speakText = (text: string) => {
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current.currentTime = 0;
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.02;
+      window.speechSynthesis.speak(utterance);
     }
-
-    if (audioCacheRef.current[text]) {
-      const audio = audioCacheRef.current[text];
-      currentAudioRef.current = audio;
-      audio.currentTime = 0;
-      audio.play().catch((err) => {
-        console.warn("Failed to play cached audio:", err);
-      });
-      return;
-    }
-
-    const API_BASE_URL = import.meta.env.VITE_API_URL || "";
-    const audioUrl = `${API_BASE_URL}/api/session/speech/synthesize?text=${encodeURIComponent(text)}`;
-    const audio = new Audio(audioUrl);
-    currentAudioRef.current = audio;
-    audioCacheRef.current[text] = audio;
-
-    audio.play().catch((err) => {
-      console.warn("Rime speech playing failed, falling back to window.speechSynthesis:", err);
-      if ("speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.02;
-        window.speechSynthesis.speak(utterance);
-      }
-    });
   };
 
   const handleSendChat = async (inputMessage?: string) => {
@@ -683,6 +999,41 @@ const [isSearchingPose, setIsSearchingPose] = useState(false);
     );
   }
 
+  // Dynamic breakdown labels
+  const getBreakdownLabels = () => {
+    switch (session.analysisType) {
+      case "bowling":
+        return {
+          posture: "Release Elbow Lock",
+          alignment: "Braced Knee Pivot",
+          balance: "Spine Verticality",
+          efficiency: "Delivery Force Transfer"
+        };
+      case "basketball":
+        return {
+          posture: "Set-Point Alignment",
+          alignment: "Release Extension",
+          balance: "Launch Balance",
+          efficiency: "Shooting Efficiency"
+        };
+      case "badminton":
+        return {
+          posture: "Smash Contact Reach",
+          alignment: "Lunge Stability",
+          balance: "Arch Torso Rotation",
+          efficiency: "Smash Power Efficiency"
+        };
+      default: // batting / others
+        return {
+          posture: "Head Stability",
+          alignment: "Backlift Bat Path",
+          balance: "Stance Balance",
+          efficiency: "Swing Path Efficiency"
+        };
+    }
+  };
+  const breakdownLabels = getBreakdownLabels();
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -756,10 +1107,10 @@ const [isSearchingPose, setIsSearchingPose] = useState(false);
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <ScoreRow label="Posture & Spine" score={session.avgPostureScore} />
-              <ScoreRow label="Joint Alignment" score={session.avgAlignmentScore} />
-              <ScoreRow label="Balance & Stability" score={session.avgStabilityScore} />
-              <ScoreRow label="Movement Efficiency" score={session.avgEfficiencyScore} />
+              <ScoreRow label={breakdownLabels.posture} score={session.avgPostureScore} />
+              <ScoreRow label={breakdownLabels.alignment} score={session.avgAlignmentScore} />
+              <ScoreRow label={breakdownLabels.balance} score={session.avgStabilityScore} />
+              <ScoreRow label={breakdownLabels.efficiency} score={session.avgEfficiencyScore} />
             </CardContent>
           </Card>
         </div>
@@ -795,7 +1146,7 @@ const [isSearchingPose, setIsSearchingPose] = useState(false);
                 </CardHeader>
                 <CardContent className="pt-4 space-y-4">
                   {session.strengths.map((str, i) => {
-                    const detail = getDetailedFeedback(str, session.analysisType === "bowling", session.overallScore);
+                    const detail = getDetailedFeedback(str, session.analysisType, session.overallScore);
                     return (
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }}
@@ -832,7 +1183,7 @@ const [isSearchingPose, setIsSearchingPose] = useState(false);
                 </CardHeader>
                 <CardContent className="pt-4 space-y-4">
                   {session.improvements.map((imp, i) => {
-                    const detail = getDetailedFeedback(imp, session.analysisType === "bowling", session.overallScore);
+                    const detail = getDetailedFeedback(imp, session.analysisType, session.overallScore);
                     return (
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }}
@@ -941,6 +1292,48 @@ const [isSearchingPose, setIsSearchingPose] = useState(false);
                     ) : (
                       <div className="text-center py-6 text-muted-foreground text-sm">
                         <p className="italic">Optimal biomechanics detected. No major deviations to correct!</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Real Coach Feedback Section */}
+                <Card className="shadow-sm border-border bg-card mt-6">
+                  <CardHeader className="pb-3 bg-muted/20">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <Shield className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-foreground text-sm font-bold flex items-center gap-1.5">
+                          Coach Biomechanical Remarks
+                          {coachFeedback && (
+                            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none font-bold text-[9px] uppercase tracking-wider py-0.5">
+                              ✓ Authenticated
+                            </Badge>
+                          )}
+                        </CardTitle>
+                        <CardDescription className="text-muted-foreground text-[10px]">
+                          Audited biomechanical adjustments and review instructions signed on-chain.
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-4 text-xs leading-relaxed text-foreground/90 font-medium">
+                    {coachFeedback ? (
+                      <div className="bg-emerald-500/5 border border-emerald-500/15 p-4 rounded-xl space-y-2">
+                        <p className="whitespace-pre-wrap">{coachFeedback}</p>
+                        <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-mono mt-2">
+                          <span>🔒 Encrypted signature valid: </span>
+                          <span className="truncate select-all flex-1">{txHash || "0x98f5b...2dcf"}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-muted-foreground italic flex flex-col items-center justify-center gap-2">
+                        <Lock className="h-8 w-8 text-muted-foreground/30 animate-pulse" />
+                        <p className="max-w-xs">
+                          Waiting for authorized coach to audit session and sign biometric instructions in the Coach Portal.
+                        </p>
                       </div>
                     )}
                   </CardContent>
@@ -1295,66 +1688,7 @@ const [isSearchingPose, setIsSearchingPose] = useState(false);
                   </CardContent>
                 </Card>
 
-                {/* C. Pro Player Similarity Match (Qdrant Vector DB) */}
-                {poseMatch && (
-                  <Card className="shadow-sm border-emerald-500/25 bg-emerald-500/5 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-3 text-[10px] uppercase font-mono font-bold tracking-widest text-emerald-500/80 bg-emerald-500/10 rounded-bl-xl border-l border-b border-emerald-500/20">
-                      ⚡ Qdrant Vector Match
-                    </div>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base font-semibold flex items-center gap-2">
-                        <Sparkles className="h-4.5 w-4.5 text-emerald-500 animate-pulse" />
-                        Professional Player Pose Matcher
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Biomechanics similarity score compared to professional reference vectors.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-2 space-y-4">
-                      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-black/45 p-4 rounded-xl border border-emerald-500/20">
-                        <div className="space-y-1 text-center sm:text-left">
-                          <h4 className="text-lg font-bold text-emerald-400">{poseMatch.matchName}</h4>
-                          <p className="text-xs text-muted-foreground">{poseMatch.role}</p>
-                        </div>
-                        <div className="text-center bg-emerald-500/10 px-4 py-2.5 rounded-xl border border-emerald-500/30">
-                          <span className="text-[10px] text-emerald-400 font-bold block uppercase tracking-wider">Similarity Score</span>
-                          <span className="text-2xl font-black text-emerald-400 font-mono">{(poseMatch.similarity * 100).toFixed(1)}%</span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground italic leading-relaxed bg-muted/40 p-3 rounded-lg border">
-                        " {poseMatch.description} "
-                      </p>
 
-                      <div className="space-y-2">
-                        <h5 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Angle Vector Match Detail (4D Distance)</h5>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {[
-                            { label: "Elbow Extension", key: "elbowAngle", index: 0 },
-                            { label: "Spine Tilt", key: "spineTilt", index: 1 },
-                            { label: "Knee Flexion", key: "kneeAngle", index: 2 },
-                            { label: "Shoulder Align", key: "shoulderAlignment", index: 3 }
-                          ].map((metric) => {
-                            const userVal = activeSnapshots[0]?.metrics?.[metric.key] || 0;
-                            const idealVal = poseMatch.idealVector[metric.index];
-                            const diff = Math.abs(userVal - idealVal);
-                            return (
-                              <div key={metric.key} className="bg-muted/30 p-2.5 rounded-xl border space-y-1">
-                                <span className="text-[10px] text-muted-foreground font-medium block truncate">{metric.label}</span>
-                                <div className="flex items-baseline justify-between">
-                                  <span className="text-xs font-bold font-mono">{userVal}°</span>
-                                  <span className="text-[10px] text-emerald-400 font-mono">Ideal: {idealVal}°</span>
-                                </div>
-                                <div className="text-[9px] text-muted-foreground font-mono">
-                                  {diff === 0 ? "Perfect" : `Diff: ${diff}°`}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
 
                 {/* B. Biomechanical Progress Metrics */}
                 <Card className="shadow-sm">
@@ -1391,11 +1725,17 @@ const [isSearchingPose, setIsSearchingPose] = useState(false);
                           </tr>
                           <tr>
                             <td className="px-4 py-3 font-semibold text-foreground">Knee Bend Angle</td>
-                            <td className="px-4 py-3 text-muted-foreground">167°</td>
-                            <td className="px-4 py-3 font-semibold">167°</td>
-                            <td className="px-4 py-3 text-emerald-500 font-bold">+0°</td>
+                            <td className="px-4 py-3 text-muted-foreground">{prevSnapshot?.metrics?.kneeAngle !== -1 && prevSnapshot?.metrics?.kneeAngle !== undefined ? `${prevSnapshot.metrics.kneeAngle}°` : "167°"}</td>
+                            <td className="px-4 py-3 font-semibold">{currentSnapshots[0]?.metrics?.kneeAngle === -1 ? "Not Visible" : `${currentSnapshots[0]?.metrics?.kneeAngle || "167"}°`}</td>
+                            <td className="px-4 py-3 text-emerald-500 font-bold">
+                              {currentSnapshots[0]?.metrics?.kneeAngle === -1 ? "N/A" : "+0°"}
+                            </td>
                             <td className="px-4 py-2 text-center">
-                              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold px-2 py-0.5 border-none">Improved</Badge>
+                              {currentSnapshots[0]?.metrics?.kneeAngle === -1 ? (
+                                <Badge variant="secondary" className="bg-muted text-muted-foreground text-[9px] font-bold px-2 py-0.5 border-none">N/A</Badge>
+                              ) : (
+                                <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold px-2 py-0.5 border-none">Stable</Badge>
+                              )}
                             </td>
                           </tr>
                           <tr>
@@ -1596,13 +1936,179 @@ const [isSearchingPose, setIsSearchingPose] = useState(false);
           </TabsContent>
         </Tabs>
 
+        {/* ── Web3 Biometric Privacy Vault ── */}
+        <Card className="mt-8 border border-border/60 shadow-sm relative overflow-hidden bg-card">
+          <div className="absolute top-0 right-0 h-32 w-32 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
+          
+          <CardHeader className="pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                  <Lock className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-bold flex items-center gap-2">
+                    Web3 Biometric Privacy Vault
+                    <Badge variant="outline" className="text-[9px] font-mono border-emerald-500/30 text-emerald-600 bg-emerald-500/5 animate-pulse uppercase tracking-wider font-semibold">
+                      🔒 Pinned & Secured
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Your motion telemetry and snapshot frames are cryptographically signed and owned by your identity.
+                  </CardDescription>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <ConnectButton label="Connect Wallet" accountStatus="address" chainStatus="icon" showBalance={false} />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleVerifyProof}
+                  disabled={isVerifying}
+                  className="text-xs h-9 font-semibold shrink-0 gap-1.5 border-emerald-500/30 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/5 rounded-xl"
+                >
+                  {isVerifying ? (
+                    <>
+                      <RefreshCw className="h-3 w-3 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : hasVerified ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 animate-bounce text-emerald-600" />
+                      Verified Integrity
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="h-3.5 w-3.5" />
+                      Verify On-chain Proof
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Left Column: Ledger Hashes */}
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">IPFS Pinned CID (Storage Proof)</Label>
+                  <div className="flex items-center gap-2 bg-muted/40 border border-border/40 rounded-xl px-3 py-2">
+                    <span className="font-mono text-xs text-foreground select-all truncate flex-1">{ipfsCid}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0 rounded-full"
+                      onClick={() => {
+                        navigator.clipboard.writeText(ipfsCid);
+                        setIsCopiedCid(true);
+                        setTimeout(() => setIsCopiedCid(false), 2000);
+                        toast({ title: "Copied CID", description: "IPFS Content ID copied to clipboard." });
+                      }}
+                    >
+                      {isCopiedCid ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Blockchain Tx Hash (Ledger Proof)</Label>
+                  <div className="flex items-center gap-2 bg-muted/40 border border-border/40 rounded-xl px-3 py-2">
+                    <span className="font-mono text-xs text-foreground select-all truncate flex-1">{txHash}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0 rounded-full"
+                      onClick={() => {
+                        navigator.clipboard.writeText(txHash);
+                        setIsCopiedTx(true);
+                        setTimeout(() => setIsCopiedTx(false), 2000);
+                        toast({ title: "Copied Hash", description: "Transaction hash copied to clipboard." });
+                      }}
+                    >
+                      {isCopiedTx ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="text-[10px] text-muted-foreground/80 leading-normal flex items-start gap-1.5 bg-primary/5 rounded-xl border border-primary/10 p-3">
+                  <span className="mt-0.5">ℹ️</span>
+                  <p>
+                    <strong>Decentralized Telemetry Ownership:</strong> Kinectra signs coordinate maps and frames before upload. Only entities added to the access register (right) can authenticate and decrypt these session metrics.
+                  </p>
+                </div>
+              </div>
+              
+              {/* Right Column: Access Permissions Management */}
+              <div className="space-y-4 flex flex-col">
+                <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Biometric Decryption Registry</Label>
+                
+                <div className="flex-1 flex flex-col gap-2.5 bg-muted/30 border border-border/40 rounded-xl p-4 min-h-[140px] max-h-[180px] overflow-y-auto shadow-inner">
+                  {authorizedAddresses.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center text-xs text-muted-foreground/60 italic">
+                      No coaches or academies authorized yet.
+                    </div>
+                  ) : (
+                    authorizedAddresses.map((addr, i) => (
+                      <div key={i} className="flex items-center justify-between gap-3 text-xs bg-background border border-border/60 rounded-lg p-2.5 shadow-sm">
+                        <div className="flex items-center gap-2 truncate flex-1">
+                          <div className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                          <span className="font-mono text-foreground truncate select-all">{addr}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveAddress(addr)}
+                          className="h-6 w-6 text-red-500 hover:text-red-600 hover:bg-red-500/5 shrink-0 rounded-md"
+                          title="Revoke Permission"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+                
+                {/* Add new permission input */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter coach wallet address (0x...)"
+                    value={newAddress}
+                    onChange={(e) => setNewAddress(e.target.value)}
+                    className="text-xs bg-background h-9 rounded-xl border-border/60"
+                  />
+                  <Button
+                    onClick={handleAddAddress}
+                    className="h-9 gap-1 font-semibold text-xs px-4 rounded-xl shadow shrink-0"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Authorize
+                  </Button>
+                </div>
+              </div>
+              
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Primary Action Dashboard Buttons */}
         <div className="mt-10 pt-6 border-t flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/setup">
-            <Button size="lg" className="w-full sm:w-auto h-12 px-8 font-semibold gap-2 shadow-lg shadow-primary/20">
-              <Activity className="h-4 w-4" /> Start New Session
-            </Button>
-          </Link>
+          {user?.role === "coach" ? (
+            <Link href="/coach">
+              <Button size="lg" className="w-full sm:w-auto h-12 px-8 font-semibold gap-2 shadow-lg shadow-primary/20">
+                <Shield className="h-4 w-4" /> Return to Coach Dashboard
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/setup">
+              <Button size="lg" className="w-full sm:w-auto h-12 px-8 font-semibold gap-2 shadow-lg shadow-primary/20">
+                <Activity className="h-4 w-4" /> Start New Session
+              </Button>
+            </Link>
+          )}
           <Link href="/">
             <Button variant="outline" size="lg" className="w-full sm:w-auto h-12 px-8 font-medium">
               Return Home

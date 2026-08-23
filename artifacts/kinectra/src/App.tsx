@@ -11,7 +11,13 @@ import Setup from "@/pages/setup";
 import Analysis from "@/pages/analysis";
 import Results from "@/pages/results";
 import Auth from "@/pages/auth";
+import Coach from "@/pages/coach";
 import NotFound from "@/pages/not-found";
+import SignatureLibrary from "@/pages/signature-library";
+import SignatureSetup from "@/pages/signature-setup";
+import SignatureAnalysis from "@/pages/signature-analysis";
+import SignatureResults from "@/pages/signature-results";
+import SignatureLearn from "@/pages/signature-learn";
 
 const queryClient = new QueryClient();
 
@@ -22,7 +28,7 @@ function ProtectedRoute({ path, component: Component }: { path: string; componen
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
         <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-        Loading athlete profile...
+        Loading profile...
       </div>
     );
   }
@@ -34,14 +40,66 @@ function ProtectedRoute({ path, component: Component }: { path: string; componen
   return <Route path={path} component={Component} />;
 }
 
+function AthleteRoute({ path, component: Component }: { path: string; component: React.ComponentType<any> }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
+        <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+        Loading profile...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Redirect to="/auth" />;
+  }
+
+  if (user.role === "coach") {
+    return <Redirect to="/coach" />;
+  }
+
+  return <Route path={path} component={Component} />;
+}
+
+function CoachRoute({ path, component: Component }: { path: string; component: React.ComponentType<any> }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
+        <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+        Loading profile...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Redirect to="/auth" />;
+  }
+
+  if (user.role !== "coach") {
+    return <Redirect to="/setup" />;
+  }
+
+  return <Route path={path} component={Component} />;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/auth" component={Auth} />
-      <ProtectedRoute path="/setup" component={Setup} />
-      <ProtectedRoute path="/analysis" component={Analysis} />
+      <AthleteRoute path="/setup" component={Setup} />
+      <AthleteRoute path="/analysis" component={Analysis} />
       <ProtectedRoute path="/results/:sessionId" component={Results} />
+      <CoachRoute path="/coach" component={Coach} />
+      <AthleteRoute path="/signature-moves" component={SignatureLibrary} />
+      <AthleteRoute path="/signature-setup/:moveId" component={SignatureSetup} />
+      <AthleteRoute path="/signature-learn/:moveId" component={SignatureLearn} />
+      <AthleteRoute path="/signature-analysis/:moveId" component={SignatureAnalysis} />
+      <ProtectedRoute path="/signature-results/:sessionId" component={SignatureResults} />
       <Route component={NotFound} />
     </Switch>
   );

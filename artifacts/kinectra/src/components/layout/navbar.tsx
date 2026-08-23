@@ -133,6 +133,14 @@ export function Navbar() {
                           Start New Session
                         </button>
                       </Link>
+                      <Link href="/signature-moves">
+                        <button 
+                          onClick={() => setDropdownOpen(false)}
+                          className="w-full text-left px-2 py-2 text-xs font-semibold text-primary hover:bg-muted rounded-lg transition-colors animate-pulse"
+                        >
+                          Signature Moves 🔥
+                        </button>
+                      </Link>
                       <button
                         onClick={() => {
                           setDropdownOpen(false);

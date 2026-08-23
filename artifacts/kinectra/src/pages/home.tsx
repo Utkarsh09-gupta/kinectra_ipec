@@ -49,46 +49,38 @@ function getJoint(id: string) {
 }
 
 function CricketVisual() {
-  const duration = 2.6; // Animation loop duration in seconds
+  const duration = 2.6;
 
   return (
     <div className="relative w-full flex items-center justify-center select-none">
       <svg viewBox="0 0 320 320" className="w-full max-w-[320px]" fill="none">
-        {/* Subtle radial glow & gradients */}
         <defs>
-          <radialGradient id="glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#F28C28" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="#F28C28" stopOpacity="0" />
-          </radialGradient>
           <radialGradient id="ball-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#f87171" stopOpacity="1" />
-            <stop offset="100%" stopColor="#ef4444" stopOpacity="1" />
+            <stop offset="0%" stopColor="#f87171" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
           </radialGradient>
-          <filter id="blur-sm">
-            <feGaussianBlur stdDeviation="1.2" />
-          </filter>
         </defs>
-        <circle cx="160" cy="160" r="140" fill="url(#glow)" />
 
         {/* Grid lines */}
         {[60, 120, 180, 240].map(y => (
-          <line key={y} x1="20" y1={y} x2="300" y2={y} stroke="#F28C28" strokeOpacity="0.06" strokeWidth="1" />
+          <line key={y} x1="20" y1={y} x2="300" y2={y} stroke="currentColor" className="text-border/20" strokeWidth="1" />
         ))}
         {[60, 120, 180, 240].map(x => (
-          <line key={x} x1={x} y1="20" x2={x} y2="300" stroke="#F28C28" strokeOpacity="0.06" strokeWidth="1" />
+          <line key={x} x1={x} y1="20" x2={x} y2="300" stroke="currentColor" className="text-border/20" strokeWidth="1" />
         ))}
 
         {/* Trajectory dashed guide line */}
         <path
           d="M 240,100 Q 190,200 150,268 Q 115,234 80,200"
-          stroke="#F28C28"
+          stroke="currentColor"
+          className="text-primary"
           strokeWidth="1.2"
           strokeDasharray="3 3"
           strokeOpacity="0.3"
           fill="none"
         />
 
-        {/* Connections — animated draw */}
+        {/* Connections */}
         {CONNECTIONS.map(([a, b], i) => {
           const ja = getJoint(a), jb = getJoint(b);
           return (
@@ -96,12 +88,13 @@ function CricketVisual() {
               key={`${a}-${b}`}
               x1={ja.cx} y1={ja.cy}
               x2={jb.cx} y2={jb.cy}
-              stroke="#F28C28"
+              stroke="currentColor"
+              className="text-primary"
               strokeWidth="1.5"
               strokeLinecap="round"
               initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.7 }}
-              transition={{ duration: 0.6, delay: 0.3 + i * 0.04, ease: "easeOut" }}
+              animate={{ pathLength: 1, opacity: 0.6 }}
+              transition={{ duration: 0.6, delay: 0.3 + i * 0.02, ease: "easeOut" }}
             />
           );
         })}
@@ -111,29 +104,19 @@ function CricketVisual() {
           <motion.g key={j.id}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.3, delay: 0.8 + i * 0.05, type: "spring", stiffness: 300 }}
+            transition={{ duration: 0.3, delay: 0.5 + i * 0.03, type: "spring", stiffness: 300 }}
             style={{ transformOrigin: `${j.cx}px ${j.cy}px` }}
           >
-            {/* Pulse ring */}
-            <motion.circle
-              cx={j.cx} cy={j.cy} r={7}
-              fill="none"
-              stroke="#F28C28"
-              strokeWidth="1"
-              initial={{ scale: 1, opacity: 0.6 }}
-              animate={{ scale: [1, 1.8, 1], opacity: [0.6, 0, 0.6] }}
-              transition={{ duration: 2.5, delay: 1.2 + i * 0.12, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <circle cx={j.cx} cy={j.cy} r={4} fill="#1a1a1a" stroke="#F28C28" strokeWidth="1.5" />
-            <circle cx={j.cx} cy={j.cy} r={2} fill="#F28C28" />
+            <circle cx={j.cx} cy={j.cy} r={4} fill="#ffffff" stroke="currentColor" className="text-primary" strokeWidth="1.5" />
+            <circle cx={j.cx} cy={j.cy} r={1.5} fill="currentColor" className="text-primary" />
           </motion.g>
         ))}
 
         {/* Crease / Ground lines */}
-        <line x1="60" y1="268" x2="100" y2="268" stroke="#374151" strokeWidth="1.2" strokeOpacity="0.4" />
-        <line x1="220" y1="268" x2="260" y2="268" stroke="#374151" strokeWidth="1.2" strokeOpacity="0.4" />
+        <line x1="60" y1="268" x2="100" y2="268" stroke="currentColor" className="text-muted-foreground/30" strokeWidth="1.2" />
+        <line x1="220" y1="268" x2="260" y2="268" stroke="currentColor" className="text-muted-foreground/30" strokeWidth="1.2" />
 
-        {/* Wickets / Stumps (located at x = 80, ground y = 268) */}
+        {/* Wickets / Stumps */}
         <motion.g
           animate={{
             skewX: [0, 0, 0, -8, 4, -2, 0, 0],
@@ -148,14 +131,14 @@ function CricketVisual() {
           style={{ transformOrigin: "80px 268px" }}
         >
           {/* Stumps */}
-          <line x1="75" y1="200" x2="75" y2="268" stroke="#d1d5db" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.85" />
-          <line x1="80" y1="200" x2="80" y2="268" stroke="#d1d5db" strokeWidth="2.2" strokeLinecap="round" strokeOpacity="0.85" />
-          <line x1="85" y1="200" x2="85" y2="268" stroke="#d1d5db" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.85" />
+          <line x1="75" y1="200" x2="75" y2="268" stroke="currentColor" className="text-foreground/40" strokeWidth="2" strokeLinecap="round" />
+          <line x1="80" y1="200" x2="80" y2="268" stroke="currentColor" className="text-foreground/50" strokeWidth="2.2" strokeLinecap="round" />
+          <line x1="85" y1="200" x2="85" y2="268" stroke="currentColor" className="text-foreground/40" strokeWidth="2" strokeLinecap="round" />
 
           {/* Left Bail */}
           <motion.line
             x1="74" y1="198" x2="80" y2="198"
-            stroke="#f97316" strokeWidth="1.8" strokeLinecap="round"
+            stroke="currentColor" className="text-primary" strokeWidth="1.8" strokeLinecap="round"
             animate={{
               y: [0, 0, 0, -24, -12, 12, 52, 52],
               x: [0, 0, 0, -14, -22, -30, -38, -38],
@@ -174,7 +157,7 @@ function CricketVisual() {
           {/* Right Bail */}
           <motion.line
             x1="80" y1="198" x2="86" y2="198"
-            stroke="#f97316" strokeWidth="1.8" strokeLinecap="round"
+            stroke="currentColor" className="text-primary" strokeWidth="1.8" strokeLinecap="round"
             animate={{
               y: [0, 0, 0, -20, -6, 16, 52, 52],
               x: [0, 0, 0, 8, 16, 24, 30, 30],
@@ -191,13 +174,14 @@ function CricketVisual() {
           />
         </motion.g>
 
-        {/* Pitch Impact Ripple Effect (at x = 150, y = 268) */}
+        {/* Pitch Impact Ripple Effect */}
         <motion.circle
           cx="150"
           cy="268"
           r={0}
           fill="none"
-          stroke="#F28C28"
+          stroke="currentColor"
+          className="text-primary"
           strokeWidth="1.5"
           animate={{
             r: [0, 0, 12, 22, 28],
@@ -211,7 +195,7 @@ function CricketVisual() {
           }}
         />
 
-        {/* Cricket Ball with Seam & Flight Scaling */}
+        {/* Cricket Ball */}
         <motion.g
           animate={{
             x: [240, 240, 150, 80, 80],
@@ -226,28 +210,24 @@ function CricketVisual() {
             times: [0, 0.12, 0.46, 0.58, 0.66],
           }}
         >
-          {/* Outer glowing halo */}
-          <circle cx="0" cy="0" r="6" fill="url(#ball-glow)" filter="url(#blur-sm)" opacity="0.6" />
-          {/* Inner physical ball */}
-          <circle cx="0" cy="0" r="4.5" fill="#dc2626" stroke="#991b1b" strokeWidth="0.5" />
-          {/* Seam line */}
+          <circle cx="0" cy="0" r="4.5" fill="#dc2626" />
           <line x1="-4" y1="0" x2="4" y2="0" stroke="#ffffff" strokeWidth="0.7" strokeDasharray="1.2 0.8" />
         </motion.g>
 
         {/* Floating metric chips */}
         {[
-          { x: 240, y: 70,  label: "ELBOW", value: "94°",  color: "#22c55e" },
-          { x: 20,  y: 150, label: "SPINE",  value: "12°",  color: "#22c55e" },
-          { x: 220, y: 250, label: "KNEE",   value: "143°", color: "#F28C28" },
+          { x: 240, y: 70,  label: "ELBOW", value: "94°",  color: "text-primary" },
+          { x: 20,  y: 150, label: "SPINE",  value: "12°",  color: "text-primary" },
+          { x: 220, y: 250, label: "KNEE",   value: "143°", color: "text-primary" },
         ].map((chip, i) => (
           <motion.g key={chip.label}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.6 + i * 0.15, duration: 0.5 }}
+            transition={{ delay: 1.2 + i * 0.1, duration: 0.5 }}
           >
-            <rect x={chip.x - 2} y={chip.y - 14} width={54} height={22} rx={5} fill="#0f0f0f" stroke={chip.color} strokeWidth="1" strokeOpacity="0.6" />
-            <text x={chip.x + 25} y={chip.y - 6} textAnchor="middle" fill="#6b7280" fontSize="7" fontFamily="monospace">{chip.label}</text>
-            <text x={chip.x + 25} y={chip.y + 4} textAnchor="middle" fill={chip.color} fontSize="9" fontWeight="bold" fontFamily="monospace">{chip.value}</text>
+            <rect x={chip.x - 2} y={chip.y - 14} width={54} height={22} rx={4} fill="var(--card)" stroke="currentColor" className="text-border/40" strokeWidth="1" />
+            <text x={chip.x + 25} y={chip.y - 6} textAnchor="middle" fill="currentColor" className="text-muted-foreground" fontSize="7" fontFamily="monospace">{chip.label}</text>
+            <text x={chip.x + 25} y={chip.y + 4} textAnchor="middle" fill="currentColor" className={chip.color} fontSize="9" fontWeight="bold" fontFamily="monospace">{chip.value}</text>
           </motion.g>
         ))}
       </svg>
@@ -294,18 +274,16 @@ export default function Home() {
 
         {/* ── Hero ── */}
         <section id="hero" className="relative min-h-screen flex items-center overflow-hidden pt-16">
-          {/* Warm dot grid */}
           <div
             className="absolute inset-0 -z-10"
             style={{
-              backgroundImage: "radial-gradient(circle, #F28C28 1px, transparent 1px)",
+              backgroundImage: "radial-gradient(circle, #e5e7eb 1px, transparent 1px)",
               backgroundSize: "32px 32px",
               backgroundPosition: "0 0",
-              opacity: 0.08,
+              opacity: 0.2,
             }}
           />
-          {/* Radial gradient fade */}
-          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-background via-background/80 to-background" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-background via-background/60 to-background" />
 
           <div className="container mx-auto px-4 md:px-6 py-16 grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
             {/* Left: copy */}
@@ -314,9 +292,9 @@ export default function Home() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/8 px-3.5 py-1.5 text-sm text-primary font-medium"
+                className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3.5 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground font-semibold"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 Real-Time Pose Estimation · Browser-Native
               </motion.div>
 
@@ -327,9 +305,9 @@ export default function Home() {
                   transition={{ duration: 0.55, delay: 0.08 }}
                   className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tighter text-foreground leading-[1.08]"
                 >
-                  Cricket Technique,
+                  Sports Technique,
                   <br />
-                  <span className="text-primary">Decoded in Real Time.</span>
+                  <span className="text-primary font-light">Decoded in Real Time.</span>
                 </motion.h1>
 
                 <motion.p
@@ -338,7 +316,7 @@ export default function Home() {
                   transition={{ duration: 0.55, delay: 0.16 }}
                   className="text-lg text-muted-foreground max-w-xl leading-relaxed"
                 >
-                  KINECTRA tracks 33 body landmarks via your webcam, calculates joint angles frame-by-frame, and scores bowling or batting technique against elite biomechanical baselines — no wearables, no uploads, no latency.
+                  KINECTRA tracks 33 body landmarks via your webcam, calculates joint angles frame-by-frame, and scores sports technique against elite biomechanical baselines — no wearables, no uploads, no latency.
                 </motion.p>
               </div>
 
@@ -349,12 +327,12 @@ export default function Home() {
                 className="flex flex-col sm:flex-row gap-3"
               >
                 <Link href="/setup">
-                  <Button size="lg" className="h-12 px-8 text-base font-semibold shadow-lg shadow-primary/20 gap-2">
+                  <Button size="lg" className="h-12 px-8 text-base font-semibold shadow-none rounded-xl gap-2">
                     Start Free Analysis <ChevronRight className="h-4 w-4" />
                   </Button>
                 </Link>
 
-                <Button onClick={handleStartDemo} variant="outline" size="lg" className="h-12 px-8 text-base font-semibold border-primary/30 text-primary hover:bg-primary/5 gap-2">
+                <Button onClick={handleStartDemo} variant="outline" size="lg" className="h-12 px-8 text-base font-semibold border-border/80 text-foreground hover:bg-muted/40 gap-2 rounded-xl">
                   Try Live Demo <Zap className="h-4 w-4" />
                 </Button>
 
@@ -371,12 +349,12 @@ export default function Home() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.5 }}
-                className="flex items-center gap-6 text-sm text-muted-foreground"
+                className="flex items-center gap-6 text-xs font-mono text-muted-foreground"
               >
                 {[
-                  { icon: <Zap className="h-4 w-4 text-primary" />, text: "Sub-100ms latency" },
-                  { icon: <Shield className="h-4 w-4 text-primary" />, text: "No data leaves device" },
-                  { icon: <Target className="h-4 w-4 text-primary" />, text: "33 pose landmarks" },
+                  { icon: <Zap className="h-3.5 w-3.5" />, text: "SUB-100MS LATENCY" },
+                  { icon: <Shield className="h-3.5 w-3.5" />, text: "NO DATA LEAVES DEVICE" },
+                  { icon: <Target className="h-3.5 w-3.5" />, text: "33 POSE LANDMARKS" },
                 ].map(({ icon, text }) => (
                   <div key={text} className="flex items-center gap-1.5">
                     {icon}
@@ -393,14 +371,8 @@ export default function Home() {
               transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
               className="relative"
             >
-              <div className="relative rounded-2xl bg-gray-950 border border-white/8 p-6 shadow-2xl overflow-hidden">
-                {/* Corner decorations */}
-                <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-red-500/80" />
-                  <div className="w-2 h-2 rounded-full bg-yellow-500/80" />
-                  <div className="w-2 h-2 rounded-full bg-emerald-500/80" />
-                </div>
-                <div className="absolute top-3 right-3 text-[10px] font-mono text-gray-600 uppercase tracking-widest">
+              <div className="relative rounded-2xl bg-card border border-border/60 p-6 shadow-sm overflow-hidden">
+                <div className="absolute top-3 right-3 text-[9px] font-mono text-muted-foreground/60 uppercase tracking-widest font-semibold">
                   POSE DETECTION
                 </div>
 
@@ -409,12 +381,12 @@ export default function Home() {
                 </div>
 
                 {/* Bottom status bar */}
-                <div className="mt-4 flex items-center justify-between text-[11px] font-mono text-gray-600">
+                <div className="mt-4 flex items-center justify-between text-[10px] font-mono text-muted-foreground/80 font-semibold">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     TRACKING ACTIVE
                   </div>
-                  <span>15 FPS · GPU</span>
+                  <span>15 FPS · BROWSER GPU</span>
                 </div>
               </div>
 
@@ -422,17 +394,17 @@ export default function Home() {
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.8, duration: 0.5 }}
-                className="absolute -right-4 top-16 bg-white rounded-xl shadow-xl border border-border/50 px-4 py-3 min-w-[140px] hidden lg:block"
+                transition={{ delay: 1.5, duration: 0.5 }}
+                className="absolute -right-4 top-16 bg-card rounded-xl shadow-sm border border-border/60 px-4 py-3 min-w-[140px] hidden lg:block"
               >
-                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">Technique Score</p>
-                <p className="text-3xl font-bold text-primary font-mono">87<span className="text-base text-muted-foreground">/100</span></p>
-                <div className="mt-1.5 h-1 bg-muted rounded-full overflow-hidden">
+                <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider mb-1">Technique Score</p>
+                <p className="text-3xl font-bold text-foreground font-mono">87<span className="text-sm text-muted-foreground font-normal">/100</span></p>
+                <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-primary rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: "87%" }}
-                    transition={{ delay: 2.2, duration: 0.8, ease: "easeOut" }}
+                    transition={{ delay: 1.8, duration: 0.8, ease: "easeOut" }}
                   />
                 </div>
               </motion.div>
@@ -588,16 +560,16 @@ export default function Home() {
                       <span className="text-4xl font-extrabold text-foreground">₹0</span>
                       <span className="text-xs text-muted-foreground">/ forever</span>
                     </div>
-                    <ul className="space-y-3 text-xs text-muted-foreground">
-                      <li className="flex items-center gap-2">✓ Real-time webcam tracking</li>
-                      <li className="flex items-center gap-2">✓ Sub-100ms local analysis</li>
-                      <li className="flex items-center gap-2">✓ Joint angle vector math</li>
-                      <li className="flex items-center gap-2 text-muted-foreground/35">✗ No permanent cloud storage</li>
-                      <li className="flex items-center gap-2 text-muted-foreground/35">✗ No progress tracker charts</li>
+                    <ul className="space-y-3 text-xs text-muted-foreground list-none pl-0">
+                      <li className="flex items-center gap-2 font-medium text-foreground"><span className="text-primary font-bold">•</span> Real-time webcam tracking</li>
+                      <li className="flex items-center gap-2"><span className="text-primary">•</span> Sub-100ms local analysis</li>
+                      <li className="flex items-center gap-2"><span className="text-primary">•</span> Joint angle vector math</li>
+                      <li className="flex items-center gap-2 text-muted-foreground/50"><span className="text-muted-foreground/30">•</span> No permanent cloud storage</li>
+                      <li className="flex items-center gap-2 text-muted-foreground/50"><span className="text-muted-foreground/30">•</span> No progress tracker charts</li>
                     </ul>
                   </div>
                   <Link href="/setup" className="mt-8">
-                    <Button variant="outline" className="w-full h-11 rounded-xl font-semibold">Get Started</Button>
+                    <Button variant="outline" className="w-full h-11 rounded-xl font-semibold shadow-none">Get Started</Button>
                   </Link>
 
                 </div>
@@ -605,8 +577,8 @@ export default function Home() {
 
               {/* Card 2: Pro (Featured) */}
               <FadeIn delay={0.1} className="flex">
-                <div className="flex-1 bg-card/85 backdrop-blur-md border-2 border-primary rounded-2xl p-6 flex flex-col justify-between relative shadow-lg shadow-primary/5 hover:scale-[1.01] transition-all">
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground font-mono text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-sm">
+                <div className="flex-1 bg-card border border-primary rounded-2xl p-6 flex flex-col justify-between relative shadow-sm hover:border-primary transition-all">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground font-mono text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
                     MOST POPULAR
                   </div>
                   <div>
@@ -616,23 +588,23 @@ export default function Home() {
                       <span className="text-4xl font-extrabold text-foreground">₹199</span>
                       <span className="text-xs text-muted-foreground">/ month</span>
                     </div>
-                    <ul className="space-y-3 text-xs text-foreground/90">
-                      <li className="flex items-center gap-2">✓ <strong>All Free Features</strong></li>
-                      <li className="flex items-center gap-2">✓ Permanent Cloud Session Storage</li>
-                      <li className="flex items-center gap-2">✓ Actual Stance Photo Comparisons</li>
-                      <li className="flex items-center gap-2">✓ 7-Day Performance Charts</li>
-                      <li className="flex items-center gap-2">✓ Unlimited Gemini AI Coach Reports</li>
+                    <ul className="space-y-3 text-xs text-foreground/90 list-none pl-0">
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> <strong>All Free Features</strong></li>
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> Permanent Cloud Session Storage</li>
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> Actual Stance Photo Comparisons</li>
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> 7-Day Performance Charts</li>
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> Unlimited Gemini AI Coach Reports</li>
                     </ul>
                   </div>
                   <Link href="/auth" className="mt-8">
-                    <Button className="w-full h-11 rounded-xl font-semibold shadow-md shadow-primary/10">Go Pro</Button>
+                    <Button className="w-full h-11 rounded-xl font-semibold shadow-none">Go Pro</Button>
                   </Link>
                 </div>
               </FadeIn>
 
               {/* Card 3: Plus */}
               <FadeIn delay={0.15} className="flex">
-                <div className="flex-1 bg-card/65 backdrop-blur-md border border-border/60 rounded-2xl p-6 flex flex-col justify-between hover:border-primary/20 transition-all">
+                <div className="flex-1 bg-card border border-border/60 rounded-2xl p-6 flex flex-col justify-between transition-all">
                   <div>
                     <h3 className="text-lg font-bold text-foreground">Plus (Coaches)</h3>
                     <p className="text-xs text-muted-foreground mt-1">For clubs & academies</p>
@@ -640,23 +612,23 @@ export default function Home() {
                       <span className="text-4xl font-extrabold text-foreground">₹3,999</span>
                       <span className="text-xs text-muted-foreground">/ month</span>
                     </div>
-                    <ul className="space-y-3 text-xs text-muted-foreground">
-                      <li className="flex items-center gap-2">✓ <strong>All Pro Features</strong></li>
-                      <li className="flex items-center gap-2">✓ Multi-Athlete Portals (Up to 50)</li>
-                      <li className="flex items-center gap-2">✓ Coach Review Commentary overlays</li>
-                      <li className="flex items-center gap-2">✓ High-Def video uploads (up to 200MB)</li>
-                      <li className="flex items-center gap-2">✓ Telemetry vector database export</li>
+                    <ul className="space-y-3 text-xs text-muted-foreground list-none pl-0">
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> <strong>All Pro Features</strong></li>
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> Multi-Athlete Portals (Up to 50)</li>
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> Coach Review Commentary overlays</li>
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> High-Def video uploads (up to 200MB)</li>
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> Telemetry vector database export</li>
                     </ul>
                   </div>
                   <Link href="/auth" className="mt-8">
-                    <Button variant="outline" className="w-full h-11 rounded-xl font-semibold">Get Plus</Button>
+                    <Button variant="outline" className="w-full h-11 rounded-xl font-semibold shadow-none">Get Plus</Button>
                   </Link>
                 </div>
               </FadeIn>
 
               {/* Card 4: Enterprise */}
               <FadeIn delay={0.2} className="flex">
-                <div className="flex-1 bg-card/65 backdrop-blur-md border border-border/60 rounded-2xl p-6 flex flex-col justify-between hover:border-primary/20 transition-all">
+                <div className="flex-1 bg-card border border-border/60 rounded-2xl p-6 flex flex-col justify-between transition-all">
                   <div>
                     <h3 className="text-lg font-bold text-foreground">Enterprise</h3>
                     <p className="text-xs text-muted-foreground mt-1">For professional institutions</p>
@@ -664,12 +636,12 @@ export default function Home() {
                       <span className="text-4xl font-extrabold text-foreground">Custom</span>
                       <span className="text-xs text-muted-foreground">/ tailored contract</span>
                     </div>
-                    <ul className="space-y-3 text-xs text-muted-foreground">
-                      <li className="flex items-center gap-2">✓ <strong>All Plus Features</strong></li>
-                      <li className="flex items-center gap-2">✓ Multi-Angle Video Synchronization</li>
-                      <li className="flex items-center gap-2">✓ Bespoke baseline threshold models</li>
-                      <li className="flex items-center gap-2">✓ White-label academy dashboard hosting</li>
-                      <li className="flex items-center gap-2">✓ Dedicated sports biomechanics consulting</li>
+                    <ul className="space-y-3 text-xs text-muted-foreground list-none pl-0">
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> <strong>All Plus Features</strong></li>
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> Multi-Angle Video Synchronization</li>
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> Bespoke baseline threshold models</li>
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> White-label academy dashboard hosting</li>
+                      <li className="flex items-center gap-2"><span className="text-primary font-bold">•</span> Dedicated sports biomechanics consulting</li>
                     </ul>
                   </div>
                   <button 
@@ -865,11 +837,11 @@ function HowItWorksCard({
   step: number;
 }) {
   return (
-    <div className="group relative bg-card border border-border/60 rounded-2xl p-6 hover:border-primary/30 hover:shadow-md transition-all duration-300 cursor-default">
-      <div className="absolute top-4 right-4 text-[11px] font-bold font-mono text-muted-foreground/30">
+    <div className="group relative bg-card border border-border/60 rounded-2xl p-6 transition-all duration-300 cursor-default">
+      <div className="absolute top-4 right-4 text-[10px] font-bold font-mono text-muted-foreground/30">
         {String(step).padStart(2, "0")}
       </div>
-      <div className="w-12 h-12 rounded-xl bg-primary/8 flex items-center justify-center mb-5 group-hover:bg-primary/14 transition-colors">
+      <div className="w-12 h-12 rounded-xl bg-muted/80 flex items-center justify-center mb-5 text-muted-foreground group-hover:text-primary transition-colors">
         {icon}
       </div>
       <h3 className="text-base font-bold tracking-tight text-foreground mb-2">{title}</h3>
@@ -880,8 +852,8 @@ function HowItWorksCard({
 
 function DemoCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="bg-card border border-border/60 rounded-2xl p-5 hover:shadow-md hover:border-primary/20 transition-all duration-300">
-      <div className="flex items-center gap-2 mb-1">
+    <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-sm transition-all duration-300">
+      <div className="flex items-center gap-2 mb-1 text-muted-foreground">
         {icon}
         <h3 className="text-sm font-bold tracking-tight text-foreground">{title}</h3>
       </div>
@@ -892,10 +864,8 @@ function DemoCard({ title, icon, children }: { title: string; icon: React.ReactN
 
 function AlertRow({ ok, text }: { ok: boolean; text: string }) {
   return (
-    <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border ${
-      ok
-        ? "text-emerald-700 bg-emerald-50 border-emerald-100"
-        : "text-orange-700 bg-orange-50 border-orange-100"
+    <div className={`flex items-center gap-2 text-xs py-2 border-b border-border/30 last:border-0 ${
+      ok ? "text-emerald-600" : "text-orange-500"
     }`}>
       {ok
         ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />

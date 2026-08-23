@@ -168,6 +168,173 @@ paths:
                   message:
                     type: string
 
+  /signature-moves:
+    get:
+      operationId: getSignatureMoves
+      tags: [signature]
+      summary: Retrieve list of signature moves
+      responses:
+        "200":
+          description: List of moves
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SignatureMove"
+
+  /signature-moves/{id}:
+    get:
+      operationId: getSignatureMoveDetails
+      tags: [signature]
+      summary: Retrieve specific move details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Move details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignatureMove"
+
+  /signature-analysis/start:
+    post:
+      operationId: startSignatureAnalysis
+      tags: [signature]
+      summary: Start a signature analysis session
+      requestBody:
+        required: true
+        content:
+          application/json:
+             schema:
+               $ref: "#/components/schemas/StartSignatureAnalysisInput"
+      responses:
+        "201":
+          description: Analysis session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  athleteName:
+                    type: string
+                  referenceMoveId:
+                    type: string
+
+  /signature-analysis/upload:
+    post:
+      operationId: uploadSignatureVideo
+      tags: [signature]
+      summary: Upload athlete video for analysis
+      responses:
+        "200":
+          description: Upload status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  videoName:
+                    type: string
+
+  /signature-analysis/process:
+    post:
+      operationId: processSignatureAnalysis
+      tags: [signature]
+      summary: Match and calculate signature move score
+      requestBody:
+        required: true
+        content:
+          application/json:
+             schema:
+               $ref: "#/components/schemas/ProcessSignatureAnalysisInput"
+      responses:
+        "200":
+          description: Analysis scores and results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  sessionId:
+                    type: string
+                  overallScore:
+                    type: number
+                  similarity:
+                    type: number
+                  accuracy:
+                    type: number
+                  timing:
+                    type: number
+                  stability:
+                    type: number
+
+  /signature-analysis/{sessionId}:
+    get:
+      operationId: getSignatureSession
+      tags: [signature]
+      summary: Get signature session details
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignatureSession"
+
+  /signature-analysis/{sessionId}/trajectory:
+    get:
+      operationId: getSignatureTrajectory
+      tags: [signature]
+      summary: Get aligned frame comparisons
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Aligned frames list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /signature-analysis/history:
+    get:
+      operationId: getSignatureHistory
+      tags: [signature]
+      summary: Get recent signature sessions
+      responses:
+        "200":
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SignatureSession"
+
 components:
   schemas:
     HealthStatus:
@@ -190,7 +357,7 @@ components:
           type: string
         analysisType:
           type: string
-          enum: [bowling, batting]
+          enum: [bowling, batting, basketball, badminton]
         skillLevel:
           type: string
           enum: [beginner, intermediate, advanced, professional]
@@ -215,7 +382,7 @@ components:
           type: string
         analysisType:
           type: string
-          enum: [bowling, batting]
+          enum: [bowling, batting, basketball, badminton]
         skillLevel:
           type: string
           enum: [beginner, intermediate, advanced, professional]
@@ -287,7 +454,7 @@ components:
           type: string
         analysisType:
           type: string
-          enum: [bowling, batting]
+          enum: [bowling, batting, basketball, badminton]
         skillLevel:
           type: string
           enum: [beginner, intermediate, advanced, professional]
@@ -402,3 +569,110 @@ components:
           type: array
           items:
             type: number
+
+    SignatureMove:
+      type: object
+      required:
+        - id
+        - playerName
+        - moveName
+        - category
+        - focusAreas
+        - difficulty
+        - description
+        - referencePoseSequenceJson
+      properties:
+        id:
+          type: string
+        playerName:
+          type: string
+        moveName:
+          type: string
+        category:
+          type: string
+        focusAreas:
+          type: array
+          items:
+            type: string
+        difficulty:
+          type: string
+        description:
+          type: string
+        referencePoseSequenceJson:
+          type: string
+
+    SignatureSession:
+      type: object
+      required:
+        - id
+        - userId
+        - athleteName
+        - referenceMoveId
+        - timestamp
+        - score
+        - trajectorySimilarity
+        - biomechanicalAccuracy
+        - timingScore
+        - stabilityScore
+        - warnings
+        - analysisDataJson
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        athleteName:
+          type: string
+        referenceMoveId:
+          type: string
+        timestamp:
+          type: string
+        score:
+          type: number
+        trajectorySimilarity:
+          type: number
+        biomechanicalAccuracy:
+          type: number
+        timingScore:
+          type: number
+        stabilityScore:
+          type: number
+        warnings:
+          type: array
+          items:
+            type: string
+        analysisDataJson:
+          type: string
+
+    StartSignatureAnalysisInput:
+      type: object
+      required:
+        - athleteName
+        - referenceMoveId
+      properties:
+        athleteName:
+          type: string
+        referenceMoveId:
+          type: string
+        userId:
+          type: string
+
+    ProcessSignatureAnalysisInput:
+      type: object
+      required:
+        - sessionId
+        - referenceMoveId
+        - poseSequence
+      properties:
+        sessionId:
+          type: string
+        referenceMoveId:
+          type: string
+        athleteName:
+          type: string
+        userId:
+          type: string
+        poseSequence:
+          type: array
+          items:
+            type: object

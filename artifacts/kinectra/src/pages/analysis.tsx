@@ -38,6 +38,7 @@ export default function Analysis() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const cameraInitialisedRef = useRef(false);
 
   const { isModelLoading, modelError, metrics, startAnalysis, stopAnalysis } =
@@ -60,7 +61,11 @@ export default function Analysis() {
       const alpha = 0.35; // smoothing coefficient
       setSmoothedMetrics((prev) => {
         const smoothedElbow = prev.elbowAngle === 0 ? metrics.elbowAngle : Math.round(alpha * metrics.elbowAngle + (1 - alpha) * prev.elbowAngle);
-        const smoothedKnee = prev.kneeAngle === 0 ? metrics.kneeAngle : Math.round(alpha * metrics.kneeAngle + (1 - alpha) * prev.kneeAngle);
+        const smoothedKnee = metrics.kneeAngle === -1
+          ? -1
+          : prev.kneeAngle <= 0
+            ? metrics.kneeAngle
+            : Math.round(alpha * metrics.kneeAngle + (1 - alpha) * prev.kneeAngle);
         const smoothedSpine = prev.spineTilt === 0 ? metrics.spineTilt : Math.round(alpha * metrics.spineTilt + (1 - alpha) * prev.spineTilt);
         const smoothedShoulder = prev.shoulderAlignment === 0 ? metrics.shoulderAlignment : Math.round(alpha * metrics.shoulderAlignment + (1 - alpha) * prev.shoulderAlignment);
         const smoothedBalance = Math.round(alpha * metrics.balanceScore + (1 - alpha) * prev.balanceScore);
@@ -86,7 +91,11 @@ export default function Analysis() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [spokenText, setSpokenText] = useState("Optimal mechanics detected. Stance is stable.");
   const [activeSuggestion, setActiveSuggestion] = useState(() => {
-    return config.analysisType === "bowling" ? "Start Bowling Stance" : "Start Batting Stance";
+    if (config.analysisType === "bowling") return "Start Bowling Stance";
+    if (config.analysisType === "batting") return "Start Batting Stance";
+    if (config.analysisType === "basketball") return "Start Shooting Form";
+    if (config.analysisType === "badminton") return "Start Overhead Smash";
+    return "Start Analysis";
   });
   const [isMuted, setIsMuted] = useState(() => {
     return sessionStorage.getItem("kinectra_coach_muted") === "true";
@@ -224,7 +233,7 @@ export default function Analysis() {
                 shoulderAlignment: Math.round(smoothedMetrics.shoulderAlignment)
               }
             }];
-            if (config.sessionId && !isGuest) {
+            if (config.sessionId) {
               try {
                 sessionStorage.setItem(`kinectra_snapshots_${config.sessionId}`, JSON.stringify(updated));
               } catch (quotaError) {
@@ -241,6 +250,14 @@ export default function Analysis() {
             else if (eventLabel === "Landing Plant") setActiveSuggestion("Reach Bowling Release");
             else if (eventLabel === "Bowling Release") setActiveSuggestion("Complete Delivery Drive");
             else if (eventLabel === "Delivery Drive") setActiveSuggestion("Start Bowling Stance");
+          } else if (config.analysisType === "basketball") {
+            if (eventLabel === "Prep Dip") setActiveSuggestion("Proceed to Release Extension");
+            else if (eventLabel === "Release Extension") setActiveSuggestion("Hold Follow-Through");
+            else if (eventLabel === "Follow-Through") setActiveSuggestion("Start Prep Dip");
+          } else if (config.analysisType === "badminton") {
+            if (eventLabel === "Preparation Loading") setActiveSuggestion("Execute Impact Contact");
+            else if (eventLabel === "Impact Contact") setActiveSuggestion("Recover into Lunge");
+            else if (eventLabel === "Recovery Lunge") setActiveSuggestion("Prepare next loading arch");
           } else {
             if (eventLabel === "Stance Setup") setActiveSuggestion("Begin High Backlift");
             else if (eventLabel === "High Backlift") setActiveSuggestion("Execute Front-foot Drive");
@@ -341,6 +358,72 @@ export default function Analysis() {
           triggerAction = true;
           eventLabel = "Delivery Drive";
           spineHistoryRef.current = [];
+        }
+      }
+    } else if (config.analysisType === "basketball") {
+      // 1. Prep Dip
+      if (kneeHistoryRef.current.length === 3 && !triggerAction) {
+        const [v0, v1, v2] = kneeHistoryRef.current;
+        const isDip = v1 >= 110 && v1 <= 135 && v1 < v0 - 3.5 && v2 > v1 + 3.5;
+        if (isDip) {
+          triggerAction = true;
+          eventLabel = "Prep Dip";
+          kneeHistoryRef.current = [];
+        }
+      }
+
+      // 2. Release Extension
+      if (elbowHistoryRef.current.length === 3 && !triggerAction) {
+        const [v0, v1, v2] = elbowHistoryRef.current;
+        const isRelease = v1 >= 155 && v1 > v0 + 4.0 && v2 < v1 - 4.0;
+        if (isRelease) {
+          triggerAction = true;
+          eventLabel = "Release Extension";
+          elbowHistoryRef.current = [];
+        }
+      }
+
+      // 3. Follow-Through
+      if (spineHistoryRef.current.length === 3 && !triggerAction) {
+        const [v0, v1, v2] = spineHistoryRef.current;
+        const isStabilized = v1 < 8 && v1 < v0 - 2.5 && v2 > v1 + 2.5;
+        if (isStabilized) {
+          triggerAction = true;
+          eventLabel = "Follow-Through";
+          spineHistoryRef.current = [];
+        }
+      }
+    } else if (config.analysisType === "badminton") {
+      // 1. Preparation Loading (Arch)
+      if (spineHistoryRef.current.length === 3 && !triggerAction) {
+        const [v0, v1, v2] = spineHistoryRef.current;
+        const isArch = v1 >= 15 && v1 > v0 + 3.0 && v2 < v1 - 3.0;
+        if (isArch) {
+          triggerAction = true;
+          eventLabel = "Preparation Loading";
+          spineHistoryRef.current = [];
+        }
+      }
+
+      // 2. Impact Contact
+      if (elbowHistoryRef.current.length === 3 && !triggerAction) {
+        const [v0, v1, v2] = elbowHistoryRef.current;
+        const isImpact = v1 >= 150 && v1 > v0 + 4.0 && v2 < v1 - 4.0;
+        if (isImpact) {
+          triggerAction = true;
+          eventLabel = "Impact Contact";
+          elbowHistoryRef.current = [];
+        }
+      }
+
+      // 3. Recovery Lunge
+      if (kneeHistoryRef.current.length === 3 && !triggerAction) {
+        const [v0, v1, v2] = kneeHistoryRef.current;
+        const isLunge = v1 >= 115 && v1 <= 140 && v1 < v0 - 4.0 && v2 > v1 + 4.0;
+        if (isLunge) {
+          triggerAction = true;
+          eventLabel = "Recovery Lunge";
+          kneeHistoryRef.current = [];
         }
       }
     } else {
@@ -758,6 +841,20 @@ export default function Analysis() {
           alertText = "Keep your head still, watch the ball.";
         } else if (activeWarning === "Balance unstable") {
           alertText = "Focus on balance and plant your landing stride.";
+        } else if (activeWarning.includes("Low set-point elbow")) {
+          alertText = "Keep your shooting elbow tucked in at a right angle.";
+        } else if (activeWarning.includes("Shallow leg drive")) {
+          alertText = "Dip your knees deeper to generate vertical propulsion.";
+        } else if (activeWarning.includes("Lateral spine lean")) {
+          alertText = "Keep your torso vertical on release to avoid balance drift.";
+        } else if (activeWarning.includes("Short overhead reach")) {
+          alertText = "Extend your hitting arm fully at the highest contact point.";
+        } else if (activeWarning.includes("Knee translated past toe")) {
+          alertText = "Avoid pushing your knee too far forward. Sit back on the lunge.";
+        } else if (activeWarning.includes("Rigid trunk loading")) {
+          alertText = "Arch your chest back to load rotational core torque.";
+        } else if (activeWarning.includes("Excessive lateral lean")) {
+          alertText = "Maintain control to recover defensively after the smash.";
         }
         
         setSpokenText(alertText);
@@ -783,16 +880,337 @@ export default function Analysis() {
     metricsRef.current = smoothedMetrics;
   }, [smoothedMetrics]);
 
+  // ── Simulated Telemetry Feed for Mock Mode / Desktop Demos ──
+  useEffect(() => {
+    if (hasCameraPermission !== false && !isDemoMode) return;
+
+    let step = 0;
+    const interval = setInterval(() => {
+      setSmoothedMetrics((prev) => {
+        step = (step + 1) % 60;
+        
+        let elbow = 70;
+        let knee = 160;
+        let spine = 5;
+        let shoulder = 5;
+        let warnings: string[] = [];
+
+        // Simulate a bowling action cycle over 18 seconds (6 phases of 10 steps * 300ms = 18s)
+        if (config.analysisType === "bowling") {
+          const phase = Math.floor(step / 10);
+          if (phase === 0) { // Stance
+            elbow = 60 + Math.sin(step) * 5;
+          } else if (phase === 1) { // Load
+            elbow = 50 + (step % 10) * 3;
+          } else if (phase === 2) { // Plant
+            knee = 140 - (step % 10) * 3;
+            elbow = 80 + (step % 10) * 5;
+          } else if (phase === 3) { // Release
+            elbow = 130 + (step % 10) * 4; // reaches > 148 peak
+          } else if (phase === 4) { // Drive
+            spine = 5 + (step % 10) * 2.5; // reaches > 18 peak
+          } else { // Follow through
+            elbow = 100 - (step % 10) * 3;
+          }
+        } else if (config.analysisType === "basketball") {
+          const phase = Math.floor(step / 15);
+          if (phase === 0) { // Dip Stance
+            knee = 150 - (step % 15) * 2.5; // dip knee to ~115
+            elbow = 80 + Math.sin(step) * 2;
+          } else if (phase === 1) { // Jump/Release
+            knee = 115 + (step % 15) * 4; // extend legs
+            elbow = 80 + (step % 15) * 6.5; // extend elbow to 177
+          } else if (phase === 2) { // Follow-through
+            elbow = 175 - (step % 15) * 2;
+            spine = 2;
+          } else { // Reset
+            knee = 160;
+            elbow = 80;
+          }
+        } else if (config.analysisType === "badminton") {
+          const phase = Math.floor(step / 15);
+          if (phase === 0) { // Preparation Load
+            spine = 5 + (step % 15) * 1.2; // arch spine to ~23
+            elbow = 80;
+          } else if (phase === 1) { // Strike / Impact
+            elbow = 80 + (step % 15) * 6; // extend hitting arm to ~170
+            spine = 23 - (step % 15) * 1.5;
+          } else if (phase === 2) { // Recovery Lunge
+            knee = 155 - (step % 15) * 2.5; // deep lunge knee to ~117
+          } else { // Reset
+            knee = 160;
+            elbow = 80;
+            spine = 5;
+          }
+        } else {
+          // Simulate a batting stroke cycle
+          const phase = Math.floor(step / 10);
+          if (phase === 0) { // Setup
+            knee = 140 + Math.sin(step) * 2;
+            spine = 15;
+          } else if (phase === 1) { // Backlift
+            elbow = 55 + (step % 10) * 2;
+            shoulder = 18;
+          } else if (phase === 2) { // Drive
+            knee = 140 - (step % 10) * 2.5; // reaches lunge
+          } else { // Follow through
+            spine = 18 - (step % 10) * 1.5;
+          }
+        }
+
+        return {
+          elbowAngle: Math.round(elbow),
+          kneeAngle: Math.round(knee),
+          spineTilt: Math.round(spine),
+          shoulderAlignment: Math.round(shoulder),
+          balanceScore: 92 + Math.round(Math.random() * 5),
+          techniqueScore: 88 + Math.round(Math.random() * 8),
+          warnings,
+          bodyDetected: true,
+        };
+      });
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [hasCameraPermission, isDemoMode, config.analysisType]);
+
+  // ── Real-time Telemetry Drawing Loop for Demo/Mock Mode ──
+  useEffect(() => {
+    if (!isDemoMode || !canvasRef.current) return;
+    
+    let active = true;
+    const canvas = canvasRef.current;
+    
+    function drawFrame() {
+      if (!active || !canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      
+      const w = 640;
+      const h = 480;
+      if (canvas.width !== w) canvas.width = w;
+      if (canvas.height !== h) canvas.height = h;
+
+      // 1. Draw backdrop grid
+      ctx.fillStyle = "#090d16";
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = "rgba(249, 115, 22, 0.08)";
+      ctx.lineWidth = 1;
+      for (let x = 40; x < w; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = 40; y < h; y += 40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      // Draw horizontal target lines
+      ctx.strokeStyle = "rgba(16, 185, 129, 0.15)";
+      ctx.beginPath(); ctx.moveTo(0, h * 0.4); ctx.lineTo(w, h * 0.4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, h * 0.7); ctx.lineTo(w, h * 0.7); ctx.stroke();
+
+      // Get current metrics
+      const m = metricsRef.current;
+
+      // 2. Draw stick figure joints based on angles
+      const neckX = w / 2;
+      const neckY = 160;
+
+      // Shoulder to hip is spine
+      const spineLength = 110;
+      const spineAngleRad = (m.spineTilt * Math.PI) / 180;
+      const hipX = neckX - Math.sin(spineAngleRad) * spineLength;
+      const hipY = neckY + Math.cos(spineAngleRad) * spineLength;
+
+      // Shoulder alignment angle
+      const shoulderWidth = 45;
+      const shAlignRad = (m.shoulderAlignment * Math.PI) / 180;
+      const lShX = neckX - Math.cos(shAlignRad) * shoulderWidth;
+      const lShY = neckY - Math.sin(shAlignRad) * shoulderWidth;
+      const rShX = neckX + Math.cos(shAlignRad) * shoulderWidth;
+      const rShY = neckY + Math.sin(shAlignRad) * shoulderWidth;
+
+      // Elbow arm
+      const upperArmLength = 55;
+      const foreArmLength = 50;
+      const elbowAngleRad = (m.elbowAngle * Math.PI) / 180;
+      
+      const rElbowX = rShX + upperArmLength * 0.8;
+      const rElbowY = rShY + upperArmLength * 0.6;
+      const rWristX = rElbowX + Math.sin(elbowAngleRad) * foreArmLength;
+      const rWristY = rElbowY + Math.cos(elbowAngleRad) * foreArmLength;
+
+      // Hips and knees
+      const hipWidth = 28;
+      const lHipX = hipX - hipWidth;
+      const rHipX = hipX + hipWidth;
+      const lHipY = hipY;
+      const rHipY = hipY;
+
+      const thighLength = 65;
+      const shinLength = 60;
+      const kneeAngleRad = m.kneeAngle === -1 ? 0 : (m.kneeAngle * Math.PI) / 180;
+      
+      const rKneeX = rHipX + Math.sin(kneeAngleRad) * thighLength * 0.3;
+      const rKneeY = rHipY + Math.cos(kneeAngleRad) * thighLength * 0.9;
+      const rAnkleX = rKneeX + Math.sin(kneeAngleRad) * shinLength * 0.5;
+      const rAnkleY = rKneeY + Math.cos(kneeAngleRad) * shinLength * 0.8;
+
+      // Draw head
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(neckX, neckY - 26, 20, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Draw trunk lines
+      ctx.strokeStyle = "#f97316";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      // Draw spine
+      ctx.beginPath();
+      ctx.moveTo(neckX, neckY);
+      ctx.lineTo(hipX, hipY);
+      ctx.stroke();
+
+      // Draw shoulders
+      ctx.beginPath();
+      ctx.moveTo(lShX, lShY);
+      ctx.lineTo(rShX, rShY);
+      ctx.stroke();
+
+      // Draw hips
+      ctx.beginPath();
+      ctx.moveTo(lHipX, lHipY);
+      ctx.lineTo(rHipX, rHipY);
+      ctx.stroke();
+
+      // Draw arms
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(rShX, rShY);
+      ctx.lineTo(rElbowX, rElbowY);
+      ctx.lineTo(rWristX, rWristY);
+      ctx.stroke();
+
+      // Draw legs
+      if (m.kneeAngle !== -1) {
+        ctx.strokeStyle = "#a7f3d0";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(rHipX, rHipY);
+        ctx.lineTo(rKneeX, rKneeY);
+        ctx.lineTo(rAnkleX, rAnkleY);
+        ctx.stroke();
+      }
+
+      // Draw joints (flashing tracker dots)
+      ctx.fillStyle = "#ef4444";
+      const joints = [
+        { x: rShX, y: rShY },
+        { x: rElbowX, y: rElbowY },
+        { x: rWristX, y: rWristY },
+        { x: rHipX, y: rHipY },
+        ...(m.kneeAngle !== -1 ? [{ x: rKneeX, y: rKneeY }, { x: rAnkleX, y: rAnkleY }] : [])
+      ];
+      joints.forEach((j) => {
+        ctx.beginPath();
+        ctx.arc(j.x, j.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // 3. Floating HUD Metric Labels
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 9px monospace";
+      ctx.fillText(`ELBOW: ${m.elbowAngle}°`, rElbowX + 12, rElbowY + 2);
+      ctx.fillText(`KNEE: ${m.kneeAngle === -1 ? "NOT VISIBLE" : `${m.kneeAngle}°`}`, rKneeX + 12, rKneeY + 2);
+      ctx.fillText(`SPINE: ${m.spineTilt}°`, hipX + 12, hipY - 6);
+
+      // HUD title
+      ctx.fillStyle = "rgba(148, 163, 184, 0.4)";
+      ctx.font = "bold 9px monospace";
+      ctx.fillText("KINECTRA SPORTS AUTONOMOUS HUD [MOCK_CAM]", 20, 30);
+
+      requestAnimationFrame(drawFrame);
+    }
+
+    requestAnimationFrame(drawFrame);
+    return () => { active = false; };
+  }, [isDemoMode]);
+
   // ── Accumulate stats (once per second rather than every metric change) ──
   const accumulateRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
-    if (!isModelLoading && hasCameraPermission) {
+    if (!isModelLoading && (hasCameraPermission || isDemoMode)) {
       accumulateRef.current = setInterval(() => {
         if (metricsRef.current.bodyDetected) {
+          // Sports-Science Phase Gate: Filter out idle/run-up/setup frames to analyze only the execution phase
+          let isActivePhase = true;
+          if (config.analysisType === "bowling") {
+            // Bowling execution: release arm raised high or torso tilted
+            isActivePhase = metricsRef.current.elbowAngle > 130 || metricsRef.current.spineTilt > 18;
+          } else if (config.analysisType === "basketball") {
+            // Shooting execution: active arm flex setpoint (75°-130°) and loaded knee (under 150°)
+            isActivePhase = metricsRef.current.elbowAngle > 75 && metricsRef.current.elbowAngle < 130 && metricsRef.current.kneeAngle < 150;
+          } else if (config.analysisType === "badminton") {
+            // Smash execution: overhead reach (no short-reach warnings) or deep recovery lunge
+            const hasShortReach = metricsRef.current.warnings.includes("Short overhead reach (Low contact point)");
+            isActivePhase = (metricsRef.current.elbowAngle > 120 && !hasShortReach) || metricsRef.current.kneeAngle < 145;
+          }
+
+          if (!isActivePhase && !isDemoMode) {
+            return; // ignore non-action run-up or idle frames
+          }
+
           setFrameCount(f => f + 1);
           statsRef.current.frames += 1;
-          statsRef.current.postureSum += metricsRef.current.spineTilt > 30 ? 50 : 90;
-          statsRef.current.alignmentSum += metricsRef.current.shoulderAlignment < 10 ? 95 : 60;
+          
+          let postureScore = 90;
+          let alignmentScore = 90;
+
+          if (config.analysisType === "bowling") {
+            postureScore = metricsRef.current.spineTilt > 30 
+              ? Math.max(50, Math.round(100 - (metricsRef.current.spineTilt - 30) * 3)) 
+              : 95;
+            alignmentScore = metricsRef.current.elbowAngle < 140 
+              ? 50 
+              : metricsRef.current.shoulderAlignment > 35 
+              ? 65 
+              : 95;
+          } else if (config.analysisType === "basketball") {
+            const isResting = metricsRef.current.elbowAngle > 125;
+            postureScore = metricsRef.current.spineTilt > 12 
+              ? Math.max(50, Math.round(100 - (metricsRef.current.spineTilt - 12) * 5)) 
+              : 95;
+            alignmentScore = isResting
+              ? 15
+              : (metricsRef.current.elbowAngle > 110 || metricsRef.current.elbowAngle < 70) 
+              ? 60 
+              : 95;
+          } else if (config.analysisType === "badminton") {
+            const isLowReach = metricsRef.current.warnings.includes("Short overhead reach (Low contact point)");
+            postureScore = (metricsRef.current.spineTilt < 10 || metricsRef.current.spineTilt > 30) 
+              ? 65 
+              : 95;
+            alignmentScore = isLowReach
+              ? 30
+              : metricsRef.current.elbowAngle < 145 
+              ? 60 
+              : 95;
+          } else { // batting
+            postureScore = metricsRef.current.spineTilt > 15 
+              ? 70 
+              : 95;
+            alignmentScore = metricsRef.current.elbowAngle < 85 
+              ? 65 
+              : 95;
+          }
+
+          statsRef.current.postureSum += postureScore;
+          statsRef.current.alignmentSum += alignmentScore;
           statsRef.current.stabilitySum += metricsRef.current.balanceScore;
           statsRef.current.efficiencySum += metricsRef.current.techniqueScore;
 
@@ -838,7 +1256,7 @@ export default function Analysis() {
           avgEfficiencyScore: avgEfficiency,
           overallScore,
           warnings: smoothedMetrics.warnings,
-          snapshots: isGuest ? [] : (snapshots as any),
+          snapshots: snapshots as any,
         },
       },
       {
@@ -855,29 +1273,87 @@ export default function Analysis() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // Dynamic Metric labels based on selected sport
+  const getMetricLabels = () => {
+    switch (config.analysisType) {
+      case "bowling":
+        return {
+          elbow: "Release Elbow",
+          knee: "Landing Knee",
+          spine: "Delivery Tilt",
+          balance: "Stride Balance",
+          form: "Bowling Score",
+          risk: "Lumbar Risk"
+        };
+      case "batting":
+        return {
+          elbow: "Backlift Elbow",
+          knee: "Lunge Knee",
+          spine: "Head Stability",
+          balance: "Stance Balance",
+          form: "Stance Score",
+          risk: "Knee Strain"
+        };
+      case "basketball":
+        return {
+          elbow: "Set-Point Elbow",
+          knee: "Propulsion Knee",
+          spine: "Spine Alignment",
+          balance: "Launch Balance",
+          form: "Release Score",
+          risk: "Load Strain"
+        };
+      case "badminton":
+        return {
+          elbow: "Smash Reach",
+          knee: "Lunge Knee",
+          spine: "Arch Rotation",
+          balance: "Lunge Stability",
+          form: "Smash Score",
+          risk: "Joint Strain"
+        };
+      default:
+        return {
+          elbow: "Elbow Angle",
+          knee: "Knee Angle",
+          spine: "Spine Tilt",
+          balance: "Balance Score",
+          form: "Form Score",
+          risk: "Injury Risk"
+        };
+    }
+  };
+  const metricLabels = getMetricLabels();
+
+  const disciplineName = 
+    config.analysisType === "bowling" ? "Bowling" : 
+    config.analysisType === "batting" ? "Batting" : 
+    config.analysisType === "basketball" ? "Basketball" : 
+    config.analysisType === "badminton" ? "Badminton" : "Unknown";
+
   return (
-    <div className="h-screen w-full flex flex-col bg-[#060b13] text-white overflow-hidden">
+    <div className="h-screen w-full flex flex-col bg-background text-foreground overflow-hidden">
 
       {/* ── Header ── */}
-      <header className="h-16 flex items-center justify-between px-6 bg-slate-900 border-b border-slate-800 z-10 shrink-0">
+      <header className="h-16 flex items-center justify-between px-6 bg-card border-b border-border/60 z-10 shrink-0">
         <div className="flex flex-col">
-          <span className="font-extrabold tracking-wider text-sm text-white">KINECTRA LABS</span>
-          <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest leading-none mt-0.5">
+          <span className="font-extrabold tracking-wider text-sm text-foreground">KINECTRA LABS</span>
+          <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-0.5">
             Autonomous Coaching Hub
           </span>
         </div>
 
         {/* Center Stats Pills */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-950/60 border border-slate-800 rounded-md font-mono text-[10px] text-slate-400">
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-muted/30 border border-border/60 rounded-md font-mono text-[10px] text-muted-foreground">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>ATHLETE: <strong className="text-white">{config.athleteName || "ug"}</strong></span>
+            <span>ATHLETE: <strong className="text-foreground">{config.athleteName || "ug"}</strong></span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-950/60 border border-slate-800 rounded-md font-mono text-[10px] text-slate-400">
-            <span>DISCIPLINE: <strong className="text-orange-500">{config.analysisType === "bowling" ? "Bowling" : "Batting"}</strong></span>
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-muted/30 border border-border/60 rounded-md font-mono text-[10px] text-muted-foreground">
+            <span>DISCIPLINE: <strong className="text-primary">{disciplineName}</strong></span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-950/60 border border-slate-800 rounded-md font-mono text-[10px] text-slate-400">
-            <span>TIME: <strong className="text-white">{formatTime(frameCount)}</strong></span>
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-muted/30 border border-border/60 rounded-md font-mono text-[10px] text-muted-foreground">
+            <span>TIME: <strong className="text-foreground">{formatTime(frameCount)}</strong></span>
           </div>
         </div>
 
@@ -898,25 +1374,33 @@ export default function Analysis() {
       </header>
 
       {/* ── Main Layout: Split Screen ── */}
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 min-h-0 bg-[#060b13] overflow-y-auto">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 min-h-0 bg-background overflow-y-auto">
         
         {/* Left Side: Live Player Feed */}
         <div className="flex flex-col gap-2 min-h-0">
-          <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-bold text-foreground uppercase tracking-wider">
             <Camera className="h-4 w-4 text-orange-500" />
             <span>Live Player Feed</span>
           </div>
           
-          <div className={`relative w-full aspect-video bg-slate-950 border rounded-xl overflow-hidden transition-all duration-300 flex items-center justify-center ${showGlowPulse ? 'border-emerald-500 shadow-[0_0_25px_rgba(16,185,129,0.4)] scale-[1.002]' : 'border-slate-800 shadow-2xl'}`}>
+          <div className={`relative w-full aspect-video bg-card border rounded-xl overflow-hidden transition-all duration-300 flex items-center justify-center ${showGlowPulse ? 'border-emerald-500 shadow-[0_0_25px_rgba(16,185,129,0.4)] scale-[1.002]' : 'border-border/60 shadow-sm'}`}>
 
             {/* Overlays for loading / error states */}
-            {hasCameraPermission === false && (
+            {hasCameraPermission === false && !isDemoMode && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-950 text-gray-400 p-8 text-center z-20">
                 <Camera className="h-12 w-12 mb-4 text-gray-600" />
                 <h3 className="text-lg font-semibold text-gray-200 mb-2">Camera Access Required</h3>
                 <p className="max-w-sm text-sm mb-4">
                   KINECTRA runs pose analysis entirely in your browser — your video never leaves your device.
                 </p>
+                <Button
+                  onClick={() => setIsDemoMode(true)}
+                  className="bg-primary hover:bg-primary/90 text-white font-bold text-xs py-2 px-5 rounded-full mt-2 gap-1.5 shadow"
+                >
+                  <Activity className="h-3.5 w-3.5" />
+                  Run Simulated Demo Session
+                </Button>
+                <div className="h-4" />
                 {cameraError === "NotReadableError" ? (
                   <p className="max-w-xs text-xs text-orange-400 bg-orange-400/10 border border-orange-500/20 px-3 py-2 rounded-lg font-mono">
                     ⚠️ Webcam is blocked or in use by another tab or app (e.g. Zoom, Teams, or browser developer tools). Please close other tabs/apps and refresh.
@@ -991,7 +1475,7 @@ export default function Analysis() {
 
         {/* Right Side: AI Coach Avatar */}
         <div className="flex flex-col gap-2 min-h-0">
-          <div className="flex items-center justify-between text-xs font-bold text-white uppercase tracking-wider">
+          <div className="flex items-center justify-between text-xs font-bold text-foreground uppercase tracking-wider">
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 text-orange-500" />
               <span>AI Coach Avatar</span>
@@ -1001,7 +1485,7 @@ export default function Analysis() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsMuted(prev => !prev)}
-                className={`h-7 w-7 rounded-full transition-all duration-300 ${isMuted ? 'text-red-500 bg-red-500/10' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                className={`h-7 w-7 rounded-full transition-all duration-300 ${isMuted ? 'text-red-500 bg-red-500/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
                 title={isMuted ? "Unmute Coach Voice" : "Mute Coach Voice"}
               >
                 {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
@@ -1010,7 +1494,7 @@ export default function Analysis() {
             </div>
           </div>
 
-          <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-2xl flex flex-col items-center justify-center gap-4 relative min-h-[280px]">
+          <div className="flex-1 bg-card border border-border rounded-xl p-6 shadow-sm flex flex-col items-center justify-center gap-4 relative min-h-[280px]">
             {/* Upper Left Suggestion Overlay */}
             <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-500 text-[10px] font-mono uppercase tracking-wider font-semibold z-10 shadow-inner">
               <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0 relative flex">
@@ -1024,9 +1508,9 @@ export default function Analysis() {
             <CoachAvatarSVG isSpeaking={isSpeaking} />
 
             {/* Translucent voice message bubble */}
-            <div className="w-full bg-[#0a0f1d]/80 border border-slate-800 rounded-xl p-4 flex items-start gap-3 mt-2 shadow-inner">
+            <div className="w-full bg-muted/40 border border-border/60 rounded-xl p-4 flex items-start gap-3 mt-2 shadow-sm">
               <Volume2 className={`h-5 w-5 text-red-500 mt-0.5 shrink-0 ${isSpeaking ? 'animate-pulse scale-110' : ''}`} />
-              <p className="text-xs text-slate-300 font-medium italic leading-relaxed">
+              <p className="text-xs text-muted-foreground font-medium italic leading-relaxed">
                 "{spokenText}"
               </p>
             </div>
@@ -1035,131 +1519,20 @@ export default function Analysis() {
           <p className="text-[9px] font-mono text-center text-slate-500 uppercase tracking-widest mt-1">
             Avatar animated dynamically in sync with text-to-speech instructions.
           </p>
-
-          {/* Agora Conversational voice coach widget */}
-          <div className="flex flex-col gap-2 border border-slate-800 bg-[#0b1329] rounded-xl p-4 mt-2 shadow-2xl shrink-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Radio className={`h-4 w-4 ${agoraConnected ? 'text-green-500 animate-pulse' : 'text-slate-400'}`} />
-                <span className="text-xs font-bold text-white uppercase tracking-wider font-semibold">Coach Aryan Live Voice</span>
-              </div>
-              <span className={`text-[9px] px-2 py-0.5 rounded font-mono uppercase font-semibold ${
-                agoraStatus.includes("Connected") 
-                  ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
-                  : agoraStatus.includes("Connecting") || agoraStatus.includes("Summoning")
-                  ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 animate-pulse'
-                  : 'bg-slate-800 text-slate-400 border border-slate-700'
-              }`}>
-                {agoraStatus}
-              </span>
-            </div>
-
-            {/* Connection Toggle & Microphone controls */}
-            <div className="flex gap-2 mt-1">
-              {!agoraConnected ? (
-                <Button
-                  onClick={connectAgora}
-                  disabled={agoraStatus === "Requesting token..." || agoraStatus === "Connecting..." || agoraStatus === "Summoning Coach Aryan..."}
-                  className="flex-1 text-xs py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white rounded-lg font-bold flex items-center justify-center gap-1.5 shadow"
-                >
-                  <Phone className="h-3.5 w-3.5" />
-                  Connect Voice Coach
-                </Button>
-              ) : (
-                <div className="flex gap-2 w-full">
-                  <Button
-                    onClick={toggleMuteAgora}
-                    variant="outline"
-                    className={`flex-1 text-xs border ${
-                      agoraMuted 
-                        ? 'border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20' 
-                        : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    } rounded-lg flex items-center justify-center gap-1.5`}
-                  >
-                    {agoraMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-                    {agoraMuted ? "Unmute Mic" : "Mute Mic"}
-                  </Button>
-                  <Button
-                    onClick={disconnectAgora}
-                    className="flex-1 text-xs bg-red-600 hover:bg-red-500 text-white rounded-lg flex items-center justify-center gap-1.5"
-                  >
-                    <PhoneOff className="h-3.5 w-3.5" />
-                    Disconnect
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Visual Waveform */}
-            {agoraConnected && (
-              <div className="flex items-center justify-center gap-1 h-6 bg-[#080d1a] border border-slate-800 rounded-lg py-1 px-3">
-                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest mr-2">Vocal Wave:</span>
-                {[...Array(12)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="w-1 rounded-full bg-gradient-to-t from-red-500 to-orange-500"
-                    animate={
-                      agoraStatus.includes("Speaking") || isSpeaking
-                        ? { height: ["10%", "95%", "10%"] }
-                        : agoraMuted
-                        ? { height: "10%" }
-                        : { height: ["15%", "35%", "15%"] }
-                    }
-                    transition={{
-                      duration: 0.5 + Math.random() * 0.4,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                      delay: i * 0.05
-                    }}
-                    style={{ height: "30%" }}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Scrolling Chat Transcripts */}
-            <div className="flex flex-col gap-1.5 mt-1 border border-slate-800 bg-[#080d1a] rounded-lg p-2.5 max-h-[140px] overflow-y-auto shadow-inner">
-              <div className="flex items-center gap-1.5 text-[9px] font-mono text-slate-500 uppercase tracking-widest mb-1 border-b border-slate-800 pb-1">
-                <MessageSquare className="h-3 w-3" />
-                <span>Coach Aryan Live Log</span>
-              </div>
-              <div className="flex flex-col gap-2">
-                {agoraTranscripts.map((t, idx) => (
-                  <div key={idx} className="flex flex-col gap-0.5 text-xs leading-normal">
-                    <div className="flex items-center justify-between">
-                      <span className={`font-mono text-[9px] uppercase font-bold tracking-wider ${
-                        t.sender === "Coach Aryan" || t.sender.includes("Alert") 
-                          ? 'text-orange-400' 
-                          : t.sender === "System" 
-                          ? 'text-slate-500' 
-                          : 'text-sky-400'
-                      }`}>
-                        {t.sender}
-                      </span>
-                      <span className="text-[8px] font-mono text-slate-600">{t.time}</span>
-                    </div>
-                    <p className={`text-slate-300 ${t.sender === "System" ? 'italic text-slate-500' : ''}`}>
-                      {t.text}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
       {/* ── Mid Section: Metrics Grid & Action Buttons ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 px-6 py-4 border-t border-slate-900 bg-[#070c16] shrink-0">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 px-6 py-4 border-t border-border/60 bg-card shrink-0">
         
         {/* Metrics Grid */}
         <div className="lg:col-span-3 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
-          <MetricBlock label="Elbow Angle" value={`${smoothedMetrics.elbowAngle}°`} isOrange />
-          <MetricBlock label="Knee Angle" value={`${smoothedMetrics.kneeAngle}°`} isOrange />
-          <MetricBlock label="Spine Tilt" value={`${smoothedMetrics.spineTilt}°`} isOrange />
-          <MetricBlock label="Balance Score" value={`${smoothedMetrics.balanceScore}%`} />
-          <MetricBlock label="Form Score" value={`${smoothedMetrics.techniqueScore}/100`} isGreen />
-          <MetricBlock label="Injury Risk" isBadge badgeValue={smoothedMetrics.warnings.length >= 2 ? "HIGH" : smoothedMetrics.warnings.length === 1 ? "MEDIUM" : "LOW"} />
+          <MetricBlock label={metricLabels.elbow} value={`${smoothedMetrics.elbowAngle}°`} isOrange />
+          <MetricBlock label={metricLabels.knee} value={smoothedMetrics.kneeAngle === -1 ? "Not Visible" : `${smoothedMetrics.kneeAngle}°`} isOrange />
+          <MetricBlock label={metricLabels.spine} value={`${smoothedMetrics.spineTilt}°`} isOrange />
+          <MetricBlock label={metricLabels.balance} value={`${smoothedMetrics.balanceScore}%`} />
+          <MetricBlock label={metricLabels.form} value={`${smoothedMetrics.techniqueScore}/100`} isGreen />
+          <MetricBlock label={metricLabels.risk} isBadge badgeValue={smoothedMetrics.warnings.length >= 2 ? "HIGH" : smoothedMetrics.warnings.length === 1 ? "MEDIUM" : "LOW"} />
         </div>
 
         {/* Action button stack */}
@@ -1190,15 +1563,15 @@ export default function Analysis() {
       </div>
 
       {/* ── Bottom Section: Auto Snapshot Gallery ── */}
-      <div className="px-6 py-4 bg-[#050911] border-t border-slate-900 shrink-0 flex flex-col sm:flex-row items-start sm:items-center gap-4 min-h-[110px]">
-        <div className="shrink-0 flex flex-col justify-center leading-none text-slate-500 font-mono font-bold tracking-widest text-[9px] uppercase">
+      <div className="px-6 py-4 bg-muted/40 border-t border-border/60 shrink-0 flex flex-col sm:flex-row items-start sm:items-center gap-4 min-h-[110px]">
+        <div className="shrink-0 flex flex-col justify-center leading-none text-muted-foreground font-mono font-bold tracking-widest text-[9px] uppercase">
           <span>AUTO SNAPSHOT</span>
           <span className="mt-1">GALLERY</span>
         </div>
 
         <div className="flex-1 flex gap-3 overflow-x-auto pb-1 scrollbar-none">
           {snapshots.length === 0 ? (
-            <div className="flex items-center text-[10px] font-mono text-slate-600 italic">
+            <div className="flex items-center text-[10px] font-mono text-muted-foreground/60 italic">
               No snapshots captured yet. Complete a movement to auto-trigger snapshots.
             </div>
           ) : (
@@ -1208,7 +1581,7 @@ export default function Analysis() {
                   key={i}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="relative w-28 rounded-lg overflow-hidden border border-slate-800 bg-black shrink-0 shadow-md group cursor-pointer"
+                  className="relative w-28 rounded-lg overflow-hidden border border-border/60 bg-background shrink-0 shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer"
                   onClick={() => {
                     const w = window.open();
                     if (w) {
@@ -1289,18 +1662,18 @@ function MetricBlock({
   const valueColor = isOrange 
     ? "text-orange-500" 
     : isGreen 
-      ? "text-emerald-400" 
-      : "text-white";
+      ? "text-emerald-500" 
+      : "text-foreground";
 
   const badgeColor = badgeValue === "HIGH" 
-    ? "bg-red-500/10 border-red-500/30 text-red-400" 
+    ? "bg-red-500/10 border-red-500/30 text-red-500" 
     : badgeValue === "MEDIUM" 
-      ? "bg-orange-500/10 border-orange-500/30 text-orange-400" 
-      : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400";
+      ? "bg-orange-500/10 border-orange-500/30 text-orange-500" 
+      : "bg-emerald-500/10 border-emerald-500/30 text-emerald-500";
 
   return (
-    <div className="bg-[#0f172a]/60 border border-slate-800 rounded-xl p-3 flex flex-col justify-between min-h-[75px] shadow-sm">
-      <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">{label}</span>
+    <div className="bg-background border border-border/60 rounded-xl p-3 flex flex-col justify-between min-h-[75px] shadow-sm">
+      <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{label}</span>
       {isBadge ? (
         <span className={`inline-block w-fit px-2.5 py-0.5 rounded-full border text-[10px] font-bold mt-1 ${badgeColor}`}>
           {badgeValue}

@@ -9,6 +9,8 @@ export interface SessionConfig {
   dominantHand: SessionInputDominantHand;
   analysisMode?: "live" | "upload";
   videoFileUrl?: string | null;
+  referenceMoveId?: string;
+  signatureMoveName?: string;
 }
 
 interface SessionContextType {

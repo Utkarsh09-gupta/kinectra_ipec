@@ -48,6 +48,58 @@ function generateRecommendations(
       strengths.push("Excellent overall bowling technique");
       recommendations.push("Continue drilling at current tempo for consistency.");
     }
+  } else if (analysisType === "basketball") {
+    if (!warningSet.has("Low set-point elbow flexion (Pushing shot)") && !warningSet.has("Excessive set-point elbow flexion")) {
+      strengths.push("Consistent shooting elbow set point");
+    } else if (warningSet.has("Low set-point elbow flexion (Pushing shot)")) {
+      improvements.push("Pushing shot trajectory");
+      recommendations.push("Tuck your shooting elbow to a 90° angle at your set point.");
+    } else {
+      improvements.push("Slow release execution");
+      recommendations.push("Open up your elbow slot slightly at the set point to quicken release.");
+    }
+    if (!warningSet.has("Shallow leg drive dip")) {
+      strengths.push("Excellent lower body kinetic load");
+    } else {
+      improvements.push("Shallow propulsion drive");
+      recommendations.push("Dip your knees deeper (around 120°) to load leg drive force.");
+    }
+    if (!warningSet.has("Lateral spine lean on release (Balance drift)")) {
+      strengths.push("Upright vertical launch alignment");
+    } else {
+      improvements.push("Lateral launch drift");
+      recommendations.push("Keep your spine vertical during release; stabilize your core posture.");
+    }
+    if (warnings.length === 0) {
+      strengths.push("Clean shooting mechanics and high release arc");
+      recommendations.push("Practice catch-and-shoot repetitions to solidify shooting rhythm.");
+    }
+  } else if (analysisType === "badminton") {
+    if (!warningSet.has("Short overhead reach (Low contact point)")) {
+      strengths.push("High vertical smash contact reach");
+    } else {
+      improvements.push("Short overhead smash reach");
+      recommendations.push("Extend hitting arm elbow fully at the peak height of the stroke.");
+    }
+    if (!warningSet.has("Knee translated past toe (Patellar stress)")) {
+      strengths.push("Stable recovery lunge base");
+    } else {
+      improvements.push("Deep knee lunge overload");
+      recommendations.push("Sit your hips back and keep your leading shin vertical to avoid knee strain.");
+    }
+    if (!warningSet.has("Rigid trunk loading posture") && !warningSet.has("Excessive lateral lean (Recovery lag)")) {
+      strengths.push("Excellent core torso coiling torque");
+    } else if (warningSet.has("Rigid trunk loading posture")) {
+      improvements.push("Rigid pre-smash coiling loading");
+      recommendations.push("Arch your shoulder line back to store core rotational energy.");
+    } else {
+      improvements.push("Excessive smash recovery shift");
+      recommendations.push("Limit excessive side tilt to speed up recovery movement.");
+    }
+    if (warnings.length === 0) {
+      strengths.push("High smash velocity and safe lunge balance");
+      recommendations.push("Incorporate rapid-recovery agility drills after smash shots.");
+    }
   } else {
     if (!warningSet.has("Head moving excessively")) {
       strengths.push("Stable head position");

@@ -1,6 +1,5 @@
 import { Router, type IRouter } from "express";
 import { SearchPosesBody, SearchPosesResponse, IngestPosesResponse } from "@workspace/api-zod";
-import { qdrant } from "../lib/qdrant";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -75,59 +74,14 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return dotProduct(a, b) / (magA * magB);
 }
 
-// Ingest route to seed Qdrant Cloud
+// Ingest route (simplified - Qdrant cloud disabled)
 router.post("/poses/ingest", async (req, res) => {
   try {
-    const isCloudConfigured = !!process.env.QDRANT_URL;
-
-    if (isCloudConfigured) {
-      logger.info("Seeding professional reference poses to Qdrant Cloud...");
-      
-      // Delete collection if it exists to ensure clean start
-      try {
-        await qdrant.deleteCollection("kinectra_poses");
-      } catch (e) {
-        logger.info("Collection kinectra_poses did not exist, creating new one.");
-      }
-
-      // Create new collection with 4D vectors (Cosine metric)
-      await qdrant.createCollection("kinectra_poses", {
-        vectors: {
-          size: 4,
-          distance: "Cosine"
-        }
-      });
-
-      // Upsert reference points
-      const points = PRO_POSES.map((pose, index) => ({
-        id: index + 1,
-        vector: pose.vector,
-        payload: {
-          name: pose.name,
-          role: pose.role,
-          analysisType: pose.analysisType,
-          description: pose.description,
-          idealVector: pose.vector
-        }
-      }));
-
-      await qdrant.upsert("kinectra_poses", {
-        wait: true,
-        points
-      });
-
-      logger.info("Successfully seeded kinectra_poses on Qdrant Cloud.");
-      res.json(IngestPosesResponse.parse({
-        status: "success",
-        message: "Successfully seeded 6 professional poses on Qdrant Cloud."
-      }));
-    } else {
-      logger.info("Qdrant Cloud URL is not set. Ingest route completed using local in-memory seeding.");
-      res.json(IngestPosesResponse.parse({
-        status: "local_fallback",
-        message: "Qdrant Cloud not configured. Using local in-memory seed references."
-      }));
-    }
+    logger.info("Ingest route completed using local in-memory reference poses.");
+    res.json(IngestPosesResponse.parse({
+      status: "local_fallback",
+      message: "Qdrant Cloud disabled. Using local in-memory seed references."
+    }));
   } catch (error: any) {
     logger.error(error, "Failed to ingest poses");
     res.status(500).json({ error: "Ingestion failed: " + error.message });
@@ -149,66 +103,28 @@ router.post("/poses/search", async (req, res): Promise<void> => {
     return;
   }
 
-  let matchResult = null;
-  const isCloudConfigured = !!process.env.QDRANT_URL;
+  logger.info("Performing local in-memory pose matching...");
+  const candidates = PRO_POSES.filter(p => p.analysisType === analysisType);
+  let bestMatch = null;
+  let bestSim = -1;
 
-  if (isCloudConfigured) {
-    try {
-      logger.info({ analysisType, poseVector }, "Querying Qdrant Cloud for pose match...");
-      const searchResult = await qdrant.query("kinectra_poses", {
-        query: poseVector,
-        filter: {
-          must: [
-            {
-              key: "analysisType",
-              match: { value: analysisType }
-            }
-          ]
-        },
-        limit: 1,
-        with_payload: true
-      });
-
-      if (searchResult && searchResult.points && searchResult.points.length > 0) {
-        const bestPoint = searchResult.points[0];
-        const payload = bestPoint.payload as any;
-        matchResult = {
-          matchName: payload?.name as string,
-          similarity: bestPoint.score,
-          role: payload?.role as string,
-          description: payload?.description as string,
-          idealVector: payload?.idealVector as number[]
-        };
-      }
-    } catch (error) {
-      logger.error(error, "Qdrant Cloud search failed, falling back to local search");
+  for (const candidate of candidates) {
+    const sim = cosineSimilarity(poseVector, candidate.vector);
+    if (sim > bestSim) {
+      bestSim = sim;
+      bestMatch = candidate;
     }
   }
 
-  // Fallback to local search if cloud search yielded nothing or failed
-  if (!matchResult) {
-    logger.info("Performing local in-memory pose matching...");
-    const candidates = PRO_POSES.filter(p => p.analysisType === analysisType);
-    let bestMatch = null;
-    let bestSim = -1;
-
-    for (const candidate of candidates) {
-      const sim = cosineSimilarity(poseVector, candidate.vector);
-      if (sim > bestSim) {
-        bestSim = sim;
-        bestMatch = candidate;
-      }
-    }
-
-    if (bestMatch) {
-      matchResult = {
-        matchName: bestMatch.name,
-        similarity: Number(bestSim.toFixed(6)),
-        role: bestMatch.role,
-        description: bestMatch.description,
-        idealVector: bestMatch.vector
-      };
-    }
+  let matchResult = null;
+  if (bestMatch) {
+    matchResult = {
+      matchName: bestMatch.name,
+      similarity: Number(bestSim.toFixed(6)),
+      role: bestMatch.role,
+      description: bestMatch.description,
+      idealVector: bestMatch.vector
+    };
   }
 
   if (!matchResult) {

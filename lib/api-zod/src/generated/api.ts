@@ -22,7 +22,7 @@ export const HealthCheckResponse = zod.object({
  */
 export const StartSessionBody = zod.object({
   "athleteName": zod.string(),
-  "analysisType": zod.enum(['bowling', 'batting']),
+  "analysisType": zod.enum(['bowling', 'batting', 'basketball', 'badminton']),
   "skillLevel": zod.enum(['beginner', 'intermediate', 'advanced', 'professional']),
   "dominantHand": zod.enum(['right', 'left'])
 })
@@ -60,7 +60,7 @@ export const EndSessionBody = zod.object({
 export const EndSessionResponse = zod.object({
   "id": zod.string(),
   "athleteName": zod.string(),
-  "analysisType": zod.enum(['bowling', 'batting']),
+  "analysisType": zod.enum(['bowling', 'batting', 'basketball', 'badminton']),
   "skillLevel": zod.enum(['beginner', 'intermediate', 'advanced', 'professional']),
   "dominantHand": zod.enum(['right', 'left']),
   "createdAt": zod.string(),
@@ -100,7 +100,7 @@ export const GetSessionParams = zod.object({
 export const GetSessionResponse = zod.object({
   "id": zod.string(),
   "athleteName": zod.string(),
-  "analysisType": zod.enum(['bowling', 'batting']),
+  "analysisType": zod.enum(['bowling', 'batting', 'basketball', 'badminton']),
   "skillLevel": zod.enum(['beginner', 'intermediate', 'advanced', 'professional']),
   "dominantHand": zod.enum(['right', 'left']),
   "createdAt": zod.string(),
@@ -136,7 +136,7 @@ export const GetSessionResponse = zod.object({
 export const ListSessionsResponseItem = zod.object({
   "id": zod.string(),
   "athleteName": zod.string(),
-  "analysisType": zod.enum(['bowling', 'batting']),
+  "analysisType": zod.enum(['bowling', 'batting', 'basketball', 'badminton']),
   "skillLevel": zod.enum(['beginner', 'intermediate', 'advanced', 'professional']),
   "dominantHand": zod.enum(['right', 'left']),
   "createdAt": zod.string(),
@@ -199,5 +199,139 @@ export const IngestPosesResponse = zod.object({
   "status": zod.string().optional(),
   "message": zod.string().optional()
 })
+
+
+/**
+ * @summary Retrieve list of signature moves
+ */
+export const GetSignatureMovesResponseItem = zod.object({
+  "id": zod.string(),
+  "playerName": zod.string(),
+  "moveName": zod.string(),
+  "category": zod.string(),
+  "focusAreas": zod.array(zod.string()),
+  "difficulty": zod.string(),
+  "description": zod.string(),
+  "referencePoseSequenceJson": zod.string()
+})
+export const GetSignatureMovesResponse = zod.array(GetSignatureMovesResponseItem)
+
+
+/**
+ * @summary Retrieve specific move details
+ */
+export const GetSignatureMoveDetailsParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetSignatureMoveDetailsResponse = zod.object({
+  "id": zod.string(),
+  "playerName": zod.string(),
+  "moveName": zod.string(),
+  "category": zod.string(),
+  "focusAreas": zod.array(zod.string()),
+  "difficulty": zod.string(),
+  "description": zod.string(),
+  "referencePoseSequenceJson": zod.string()
+})
+
+
+/**
+ * @summary Start a signature analysis session
+ */
+export const StartSignatureAnalysisBody = zod.object({
+  "athleteName": zod.string(),
+  "referenceMoveId": zod.string(),
+  "userId": zod.string().optional()
+})
+
+
+/**
+ * @summary Upload athlete video for analysis
+ */
+export const UploadSignatureVideoResponse = zod.object({
+  "status": zod.string().optional(),
+  "videoName": zod.string().optional()
+})
+
+
+/**
+ * @summary Match and calculate signature move score
+ */
+export const ProcessSignatureAnalysisBody = zod.object({
+  "sessionId": zod.string(),
+  "referenceMoveId": zod.string(),
+  "athleteName": zod.string().optional(),
+  "userId": zod.string().optional(),
+  "poseSequence": zod.array(zod.object({
+
+}).passthrough())
+})
+
+export const ProcessSignatureAnalysisResponse = zod.object({
+  "status": zod.string().optional(),
+  "sessionId": zod.string().optional(),
+  "overallScore": zod.number().optional(),
+  "similarity": zod.number().optional(),
+  "accuracy": zod.number().optional(),
+  "timing": zod.number().optional(),
+  "stability": zod.number().optional()
+})
+
+
+/**
+ * @summary Get signature session details
+ */
+export const GetSignatureSessionParams = zod.object({
+  "sessionId": zod.coerce.string()
+})
+
+export const GetSignatureSessionResponse = zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "athleteName": zod.string(),
+  "referenceMoveId": zod.string(),
+  "timestamp": zod.string(),
+  "score": zod.number(),
+  "trajectorySimilarity": zod.number(),
+  "biomechanicalAccuracy": zod.number(),
+  "timingScore": zod.number(),
+  "stabilityScore": zod.number(),
+  "warnings": zod.array(zod.string()),
+  "analysisDataJson": zod.string()
+})
+
+
+/**
+ * @summary Get aligned frame comparisons
+ */
+export const GetSignatureTrajectoryParams = zod.object({
+  "sessionId": zod.coerce.string()
+})
+
+export const GetSignatureTrajectoryResponseItem = zod.object({
+
+}).passthrough()
+export const GetSignatureTrajectoryResponse = zod.array(GetSignatureTrajectoryResponseItem)
+
+
+/**
+ * @summary Get recent signature sessions
+ */
+export const GetSignatureHistoryResponseItem = zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "athleteName": zod.string(),
+  "referenceMoveId": zod.string(),
+  "timestamp": zod.string(),
+  "score": zod.number(),
+  "trajectorySimilarity": zod.number(),
+  "biomechanicalAccuracy": zod.number(),
+  "timingScore": zod.number(),
+  "stabilityScore": zod.number(),
+  "warnings": zod.array(zod.string()),
+  "analysisDataJson": zod.string()
+})
+export const GetSignatureHistoryResponse = zod.array(GetSignatureHistoryResponseItem)
 
 

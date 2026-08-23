@@ -7,11 +7,15 @@
  */
 
 export * from './errorResponse';
+export * from './getSignatureTrajectory200Item';
 export * from './healthStatus';
 export * from './ingestPoses200';
 export * from './poseMatch';
 export * from './poseSearchInput';
 export * from './poseSearchInputAnalysisType';
+export * from './processSignatureAnalysis200';
+export * from './processSignatureAnalysisInput';
+export * from './processSignatureAnalysisInputPoseSequenceItem';
 export * from './session';
 export * from './sessionAnalysisType';
 export * from './sessionDominantHand';
@@ -27,6 +31,11 @@ export * from './sessionSummaryAnalysisType';
 export * from './sessionSummaryDominantHand';
 export * from './sessionSummarySkillLevel';
 export * from './sessionSummaryStatus';
+export * from './signatureMove';
+export * from './signatureSession';
 export * from './snapshot';
 export * from './snapshotMetrics';
+export * from './startSignatureAnalysis201';
+export * from './startSignatureAnalysisInput';
 export * from './synthesizeSpeechParams';
+export * from './uploadSignatureVideo200';
