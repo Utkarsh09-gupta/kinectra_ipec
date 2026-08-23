@@ -360,7 +360,11 @@ router.post("/signature-analysis/process", async (req, res): Promise<void> => {
       biomechanicalAccuracy: result.accuracy,
       timingScore: result.timing,
       stabilityScore: result.stability,
-      warnings: athleteNormalized.flatMap(f => f.angles.elbowAngle < 120 ? ["Flexed release arm"] : []),
+      warnings: [
+        ...(result.isStatic ? ["Stationary posture detected. Move actively!"] : []),
+        ...(result.noLowerBody ? ["Lower body off-screen. Stand further back!"] : []),
+        ...athleteNormalized.flatMap(f => f.angles.elbowAngle < 120 ? ["Flexed release arm"] : [])
+      ],
       analysisDataJson: JSON.stringify(result.alignedFrames)
     };
 

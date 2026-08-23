@@ -178,10 +178,11 @@ export function useKinectraAnalysis(
       let techniqueScore = 100;
 
       if (analysisType === "bowling") {
+        const isArmOverhead = wrist && shoulder && (wrist.y < shoulder.y); // wrist must be above shoulder for a delivery release
         // Legal extension check (optimal release arm should be almost straight: 165°–180°)
-        // Relaxed threshold to 155° and buffer factor to account for off-axis high-angle camera project distortion
-        const elbowScore = Math.max(0, 100 - Math.max(0, 155 - elbowAngle) * 2.5);
+        const elbowScore = isArmOverhead ? Math.max(0, 100 - Math.max(0, 155 - elbowAngle) * 2.5) : 0;
         if (elbowAngle < 140) warnings.push("Illegal elbow flexion (Chucking risk)");
+        if (!isArmOverhead) warnings.push("Low arm release angle");
 
         // Front knee brace check (optimal landing knee should be firm: 135°–165° to allow landing impact absorption)
         const kneeScore = kneeAngle === -1 ? 100 : Math.max(0, 100 - Math.max(0, 135 - kneeAngle) * 2.0);
@@ -215,6 +216,17 @@ export function useKinectraAnalysis(
             spineScore * 0.2 +
             shoulderScore * 0.1;
         }
+
+        // Penalize if lower body is not visible (sitting close to camera)
+        if (kneeAngle === -1) {
+          techniqueScore = techniqueScore * 0.55;
+        }
+
+        // Penalize heavily if arm is not overhead (resting or sitting)
+        if (!isArmOverhead) {
+          techniqueScore = techniqueScore * 0.15;
+        }
+      }
       } else if (analysisType === "basketball") {
         // Basketball Shooting
         const isHandActive = wrist && hip && (wrist.y < hip.y - 0.05); // wrist must be above hip waist level to indicate active shot setup/release
@@ -265,12 +277,14 @@ export function useKinectraAnalysis(
         }
       } else {
         // Cricket Batting
+        const isHandActive = wrist && hip && (wrist.y < hip.y); // hands/wrist must be above hips to indicate bat lift stance
         const kneeScore = kneeAngle === -1 ? 100 : Math.max(0, 100 - Math.max(0, 135 - kneeAngle) * 3 - Math.max(0, kneeAngle - 155) * 2);
         if (kneeAngle !== -1 && kneeAngle < 125) warnings.push("Front foot delayed / collapsed knee");
         if (kneeAngle !== -1 && kneeAngle > 160) warnings.push("Stiff front-foot landing stride");
 
-        const elbowScore = Math.max(0, 100 - Math.max(0, 90 - elbowAngle) * 2.5);
+        const elbowScore = isHandActive ? Math.max(0, 100 - Math.max(0, 90 - elbowAngle) * 2.5) : 0;
         if (elbowAngle < 85) warnings.push("Low bat lift backswing");
+        if (!isHandActive) warnings.push("Low bat position (No active swing)");
 
         const spineScore = Math.max(0, 100 - Math.max(0, spineTilt - 15) * 4);
         if (spineTilt > 15) warnings.push("Balance unstable (Excessive lean)");
@@ -280,8 +294,14 @@ export function useKinectraAnalysis(
 
         if (kneeAngle === -1) {
           techniqueScore = balanceScore * 0.25 + elbowScore * 0.35 + spineScore * 0.25 + shoulderScore * 0.15;
+          techniqueScore = techniqueScore * 0.55; // Lower body missing penalty
         } else {
           techniqueScore = balanceScore * 0.2 + elbowScore * 0.3 + kneeScore * 0.2 + spineScore * 0.2 + shoulderScore * 0.1;
+        }
+
+        // Heavy penalty if hand is just resting at side (idle stance)
+        if (!isHandActive) {
+          techniqueScore = techniqueScore * 0.15;
         }
       }
 

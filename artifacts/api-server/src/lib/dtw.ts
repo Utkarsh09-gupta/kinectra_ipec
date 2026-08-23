@@ -124,6 +124,8 @@ export interface DTWResult {
     refWrist: { x: number; y: number };
     athWrist: { x: number; y: number };
   }[];
+  isStatic?: boolean;
+  noLowerBody?: boolean;
 }
 
 /**
@@ -233,26 +235,51 @@ export function alignSequences(refSeq: PoseFrame[], athSeq: PoseFrame[]): DTWRes
       refWrist: ref.landmarks.wrist || { x: 0, y: 0 },
       athWrist: ath.landmarks.wrist || { x: 0, y: 0 },
       refPose: ref.landmarks,
-      athPose: ath.landmarks
-    };
-  });
+    });
 
-  // Overall combined score (alignment 25%, mechanics 25%, trajectory 20%, timing 15%, stability 15%)
-  const score = Math.round(
-    accuracy * 0.25 + 
-    accuracy * 0.25 + 
+  // Calculate standard deviation of wrist Y coordinate and elbow angle to detect stationary/static attempts
+  const wristYVals = athSeq.map((f) => f.landmarks.wrist?.y || 0);
+  const elbowAngles = athSeq.map((f) => f.angles.elbowAngle);
+
+  const getStdDev = (arr: number[]) => {
+    if (arr.length === 0) return 0;
+    const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+    const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / arr.length;
+    return Math.sqrt(variance);
+  };
+
+  const wristStd = getStdDev(wristYVals);
+  const elbowStd = getStdDev(elbowAngles);
+
+  // If standard deviation is extremely low, it means the user was sitting/standing completely still
+  const isStatic = wristStd < 0.04 && elbowStd < 4.0;
+  const noLowerBody = athSeq.every((f) => f.angles.kneeAngle === -1);
+
+  // Combined score (accuracy 50%, similarity 20%, timing 15%, stability 15%)
+  let score = Math.round(
+    accuracy * 0.5 + 
     similarity * 0.2 + 
     timing * 0.15 + 
     stability * 0.15
   );
 
+  // Apply penalties dynamically
+  if (noLowerBody) {
+    score = Math.round(score * 0.55); // 45% penalty for missing lower body capture
+  }
+  if (isStatic) {
+    score = Math.round(score * 0.12); // 88% penalty for static pose
+  }
+
   return {
     score,
-    similarity,
-    accuracy,
-    timing,
-    stability,
+    similarity: isStatic ? Math.round(similarity * 0.12) : similarity,
+    accuracy: isStatic ? Math.round(accuracy * 0.12) : accuracy,
+    timing: isStatic ? Math.round(timing * 0.12) : timing,
+    stability: isStatic ? Math.round(stability * 0.12) : stability,
     warpingPath: finalPath,
-    alignedFrames
+    alignedFrames,
+    isStatic,
+    noLowerBody
   };
 }
