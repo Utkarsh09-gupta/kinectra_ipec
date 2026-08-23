@@ -226,7 +226,6 @@ export function useKinectraAnalysis(
         if (!isArmOverhead) {
           techniqueScore = techniqueScore * 0.15;
         }
-      }
       } else if (analysisType === "basketball") {
         // Basketball Shooting
         const isHandActive = wrist && hip && (wrist.y < hip.y - 0.05); // wrist must be above hip waist level to indicate active shot setup/release
