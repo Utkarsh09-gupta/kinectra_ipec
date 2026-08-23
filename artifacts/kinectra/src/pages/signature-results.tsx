@@ -260,9 +260,17 @@ export default function SignatureResults() {
     const rawAngle = Math.atan2(dySho, dxSho) * (180 / Math.PI);
     const tiltAngle = Number.isNaN(rawAngle) ? 0 : rawAngle * 0.45;
 
-    // Size of the backdrop photo: make reference photo larger (285px) and athlete photo 250px (upright, no rotation)
-    const imgSize = gradPrefix === "ref" ? 285 : 250;
-    const imgTransform = `translate(${(torsoX - imgSize / 2).toFixed(1)}, ${(torsoY - imgSize / 2).toFixed(1)})`;
+    // Size of the backdrop photo: make both reference and athlete photo larger (340px) to fill the SVG canvas
+    const imgSize = 340;
+    let xOffset = torsoX - imgSize / 2;
+    let yOffset = torsoY - imgSize / 2;
+    
+    if (gradPrefix === "ref") {
+      xOffset -= 35; // Shift reference left to align Dhoni with center skeleton
+    } else {
+      yOffset -= 60; // Shift athlete photo up to pull their body to the center skeleton
+    }
+    const imgTransform = `translate(${xOffset.toFixed(1)}, ${yOffset.toFixed(1)})`;
 
     // Draw trajectory direction vector arrow
     let arrowEl = null;
