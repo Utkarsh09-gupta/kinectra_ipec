@@ -386,45 +386,7 @@ export function useKinectraAnalysis(
                     [joints.rkne, joints.rank],
                   ];
 
-                  // 0. Estimate Neck & Head Proportions
-                  if (joints.lsho && joints.rsho) {
-                    const midSX = (joints.lsho.x + joints.rsho.x) / 2;
-                    const midSY = (joints.lsho.y + joints.rsho.y) / 2;
-                    const shoWidth = Math.hypot(joints.rsho.x - joints.lsho.x, joints.rsho.y - joints.lsho.y) || 50;
-                    
-                    const dx = joints.rsho.x - joints.lsho.x;
-                    const dy = joints.rsho.y - joints.lsho.y;
-                    const rawAngle = Math.atan2(dy, dx);
-                    const tilt = Number.isNaN(rawAngle) ? 0 : rawAngle * 0.45;
-                    
-                    const neckLen = shoWidth * 0.4;
-                    const headX = midSX - neckLen * Math.sin(tilt);
-                    const headY = midSY - neckLen * Math.cos(tilt);
-                    const headRadius = shoWidth * 0.28;
-                    
-                    // Draw neck volume cylinder
-                    ctx.strokeStyle = "rgba(34, 197, 94, 0.15)";
-                    ctx.lineWidth = 8;
-                    ctx.beginPath();
-                    ctx.moveTo(midSX, midSY);
-                    ctx.lineTo(headX, headY);
-                    ctx.stroke();
-                    
-                    // Draw neck bone line
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(midSX, midSY);
-                    ctx.lineTo(headX, headY);
-                    ctx.stroke();
-                    
-                    // Draw simple transparent head outline to avoid blocking the webcam view
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
-                    ctx.lineWidth = 2.5;
-                    ctx.beginPath();
-                    ctx.arc(headX, headY, headRadius * 0.75, 0, 2 * Math.PI);
-                    ctx.stroke();
-                  }
+
 
                   // 1. Torso Chest Plate
                   if (joints.lsho && joints.rsho && joints.rhip && joints.lhip) {
