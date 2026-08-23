@@ -235,7 +235,9 @@ export function alignSequences(refSeq: PoseFrame[], athSeq: PoseFrame[]): DTWRes
       refWrist: ref.landmarks.wrist || { x: 0, y: 0 },
       athWrist: ath.landmarks.wrist || { x: 0, y: 0 },
       refPose: ref.landmarks,
-    });
+      athPose: ath.landmarks
+    };
+  });
 
   // Calculate standard deviation of wrist Y coordinate and elbow angle to detect stationary/static attempts
   const wristYVals = athSeq.map((f) => f.landmarks.wrist?.y || 0);
