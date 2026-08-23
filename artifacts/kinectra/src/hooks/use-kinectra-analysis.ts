@@ -418,25 +418,11 @@ export function useKinectraAnalysis(
                     ctx.lineTo(headX, headY);
                     ctx.stroke();
                     
-                    // Draw glossy 3D head sphere using radial specular gradient
-                    const radGrad = ctx.createRadialGradient(
-                      headX - headRadius * 0.3,
-                      headY - headRadius * 0.3,
-                      headRadius * 0.1,
-                      headX,
-                      headY,
-                      headRadius
-                    );
-                    radGrad.addColorStop(0, "#ffffff");
-                    radGrad.addColorStop(0.3, "#4ade80");
-                    radGrad.addColorStop(1, "#166534");
-                    
-                    ctx.fillStyle = radGrad;
-                    ctx.strokeStyle = "#22c55e";
-                    ctx.lineWidth = 1.5;
+                    // Draw simple transparent head outline to avoid blocking the webcam view
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+                    ctx.lineWidth = 2.5;
                     ctx.beginPath();
-                    ctx.arc(headX, headY, headRadius, 0, 2 * Math.PI);
-                    ctx.fill();
+                    ctx.arc(headX, headY, headRadius * 0.75, 0, 2 * Math.PI);
                     ctx.stroke();
                   }
 
