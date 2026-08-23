@@ -260,8 +260,9 @@ export default function SignatureResults() {
     const rawAngle = Math.atan2(dySho, dxSho) * (180 / Math.PI);
     const tiltAngle = Number.isNaN(rawAngle) ? 0 : rawAngle * 0.45;
 
-    // 200x200 silhouette translation and rotation transform
-    const imgTransform = `translate(${(torsoX - 100).toFixed(1)}, ${(torsoY - 105).toFixed(1)}) rotate(${tiltAngle.toFixed(1)}, 100, 100)`;
+    // Size of the backdrop photo: make reference photo larger (285px) and athlete photo 250px (upright, no rotation)
+    const imgSize = gradPrefix === "ref" ? 285 : 250;
+    const imgTransform = `translate(${(torsoX - imgSize / 2).toFixed(1)}, ${(torsoY - imgSize / 2).toFixed(1)})`;
 
     // Draw trajectory direction vector arrow
     let arrowEl = null;
@@ -408,8 +409,8 @@ export default function SignatureResults() {
         {/* Clean player outline illustration backdrop */}
         <image
           href={backdropUrl}
-          width="220"
-          height="220"
+          width={imgSize}
+          height={imgSize}
           opacity={imgOpacity}
           transform={imgTransform}
           className="pointer-events-none"
@@ -570,7 +571,7 @@ export default function SignatureResults() {
                   <span className="text-[10px] font-bold font-mono text-muted-foreground uppercase tracking-wider">
                     Reference: {moveDetails?.playerName} ({moveDetails?.moveName})
                   </span>
-                  <div className="relative w-full max-w-[280px] aspect-square bg-card border rounded-2xl p-4 flex items-center justify-center border-border/50">
+                  <div className="relative w-full max-w-[340px] aspect-square bg-card border rounded-2xl p-4 flex items-center justify-center border-border/50">
                     <svg viewBox="0 0 400 400" className="w-full h-full select-none" fill="none">
                       <defs>
                         <marker id="arrow-cyan" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -626,7 +627,7 @@ export default function SignatureResults() {
                   <span className="text-[10px] font-bold font-mono text-primary uppercase tracking-wider">
                     Your Attempt: {session.athleteName}
                   </span>
-                  <div className="relative w-full max-w-[280px] aspect-square bg-card border rounded-2xl p-4 flex items-center justify-center border-border/50">
+                  <div className="relative w-full max-w-[340px] aspect-square bg-card border rounded-2xl p-4 flex items-center justify-center border-border/50">
                     <svg viewBox="0 0 400 400" className="w-full h-full select-none" fill="none">
                       <defs>
                         <marker id="arrow-orange" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
