@@ -421,6 +421,7 @@ export default function SignatureResults() {
           height={imgSize}
           opacity={imgOpacity}
           transform={imgTransform}
+          preserveAspectRatio="xMidYMid slice"
           className="pointer-events-none"
         />
 
