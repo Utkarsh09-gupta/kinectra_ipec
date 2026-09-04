@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { hashPassword, verifyPassword, signToken, verifyToken } from "../utils/auth";
 import { z } from "zod";
 import { OAuth2Client } from "google-auth-library";
@@ -97,12 +97,18 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
     }
 
     const { username, password } = parsed.data;
+    const loginIdentifier = username.trim();
 
-    // Lookup user
+    // Lookup user by username OR email
     const users = await db
       .select()
       .from(usersTable)
-      .where(eq(usersTable.username, username))
+      .where(
+        or(
+          eq(usersTable.username, loginIdentifier),
+          eq(usersTable.email, loginIdentifier.toLowerCase())
+        )
+      )
       .limit(1);
 
     if (users.length === 0) {
