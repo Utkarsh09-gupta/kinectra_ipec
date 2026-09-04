@@ -157,7 +157,7 @@ export default function SignatureSetup() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-transparent relative overflow-hidden">
       <Navbar />
 
       <main className="flex-grow container px-4 py-8 md:py-12 mt-16 max-w-3xl mx-auto relative z-10">

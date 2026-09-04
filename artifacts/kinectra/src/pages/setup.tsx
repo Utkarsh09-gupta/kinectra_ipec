@@ -141,7 +141,7 @@ export default function Setup() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-transparent relative overflow-hidden">
       {/* Ambient background glows */}
       <div className="absolute top-[10%] left-[-100px] w-[300px] h-[300px] rounded-full bg-primary/5 blur-[120px] pointer-events-none animate-glow-drift z-0" />
       <div className="absolute bottom-[10%] right-[-100px] w-[350px] h-[350px] rounded-full bg-primary/5 blur-[120px] pointer-events-none animate-glow-drift z-0" style={{ animationDelay: "-6s" }} />

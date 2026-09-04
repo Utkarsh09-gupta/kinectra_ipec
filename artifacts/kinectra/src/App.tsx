@@ -111,9 +111,34 @@ function App() {
       <TooltipProvider>
         <AuthProvider>
           <SessionProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
-            </WouterRouter>
+            <div className="relative min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary/30">
+              {/* Layer 1: Global Multi-Sports Action Background Image */}
+              <div 
+                className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none"
+                style={{
+                  backgroundImage: `url('/sports_hero_background.png')`,
+                  filter: "brightness(0.3) contrast(1.2) saturate(1.1)",
+                }}
+              />
+
+              {/* Layer 2: Global Radial Dot Grid & Vignette Overlay */}
+              <div
+                className="fixed inset-0 z-0 opacity-15 pointer-events-none"
+                style={{
+                  backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+                  backgroundSize: "32px 32px",
+                  backgroundPosition: "0 0",
+                }}
+              />
+              <div className="fixed inset-0 z-0 bg-gradient-to-b from-background/80 via-background/60 to-background/90 pointer-events-none" />
+
+              {/* Page Content */}
+              <div className="relative z-10">
+                <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                  <Router />
+                </WouterRouter>
+              </div>
+            </div>
           </SessionProvider>
         </AuthProvider>
         <Toaster />

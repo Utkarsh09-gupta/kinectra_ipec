@@ -488,7 +488,7 @@ export default function Coach() {
   }, [canvasElement, selectedSessionId, activePortalTab, loadedImage, activeMetrics, selectedSessionMetrics]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-screen bg-transparent text-foreground flex flex-col">
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 md:py-12 space-y-8 animate-fade-in">

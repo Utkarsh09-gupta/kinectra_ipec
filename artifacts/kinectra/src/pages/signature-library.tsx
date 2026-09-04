@@ -22,7 +22,7 @@ export default function SignatureLibrary() {
   const streak = history.length > 0 ? Math.min(history.length, 3) : 0;
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-transparent relative overflow-hidden flex flex-col">
       {/* Ambient background glows */}
       <div className="absolute top-[10%] left-[-100px] w-[300px] h-[300px] rounded-full bg-primary/5 blur-[120px] pointer-events-none animate-glow-drift z-0" />
       <div className="absolute bottom-[15%] right-[-100px] w-[350px] h-[350px] rounded-full bg-primary/5 blur-[120px] pointer-events-none animate-glow-drift z-0" style={{ animationDelay: "-4s" }} />

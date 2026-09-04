@@ -164,7 +164,7 @@ export default function SignatureLearn() {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-transparent relative overflow-hidden flex flex-col">
       {/* Ambient decorative glows */}
       <div className="absolute top-[10%] left-[-120px] w-[320px] h-[320px] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[10%] right-[-120px] w-[350px] h-[350px] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />

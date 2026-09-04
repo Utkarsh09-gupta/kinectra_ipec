@@ -267,25 +267,14 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-transparent">
       <Navbar />
 
       <main className="flex-1">
 
         {/* ── Hero ── */}
         <section id="hero" className="relative min-h-screen flex items-center overflow-hidden pt-16">
-          <div
-            className="absolute inset-0 -z-10"
-            style={{
-              backgroundImage: "radial-gradient(circle, #e5e7eb 1px, transparent 1px)",
-              backgroundSize: "32px 32px",
-              backgroundPosition: "0 0",
-              opacity: 0.2,
-            }}
-          />
-          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-background via-background/60 to-background" />
-
-          <div className="container mx-auto px-4 md:px-6 py-16 grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+          <div className="container relative z-10 mx-auto px-4 md:px-6 py-16 grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
             {/* Left: copy */}
             <div className="space-y-8">
               <motion.div
@@ -552,9 +541,10 @@ export default function Home() {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
               {/* Card 1: Free */}
               <FadeIn delay={0.05} className="flex">
-                <div className="flex-1 bg-card/65 backdrop-blur-md border border-border/60 rounded-2xl p-6 flex flex-col justify-between hover:border-primary/20 transition-all">
+                <div className="group flex-1 bg-card/65 backdrop-blur-md border border-border/60 rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/40 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div>
-                    <h3 className="text-lg font-bold text-foreground">Free Plan</h3>
+                    <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">Free Plan</h3>
                     <p className="text-xs text-muted-foreground mt-1">For casual training checks</p>
                     <div className="flex items-baseline gap-1 mt-4 mb-6">
                       <span className="text-4xl font-extrabold text-foreground">₹0</span>
@@ -569,7 +559,7 @@ export default function Home() {
                     </ul>
                   </div>
                   <Link href="/setup" className="mt-8">
-                    <Button variant="outline" className="w-full h-11 rounded-xl font-semibold shadow-none">Get Started</Button>
+                    <Button variant="outline" className="w-full h-11 rounded-xl font-semibold shadow-none group-hover:border-primary/50 group-hover:bg-primary/5 transition-all">Get Started</Button>
                   </Link>
 
                 </div>
@@ -577,12 +567,13 @@ export default function Home() {
 
               {/* Card 2: Pro (Featured) */}
               <FadeIn delay={0.1} className="flex">
-                <div className="flex-1 bg-card border border-primary rounded-2xl p-6 flex flex-col justify-between relative shadow-sm hover:border-primary transition-all">
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground font-mono text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
+                <div className="group flex-1 bg-card/80 backdrop-blur-md border-2 border-primary rounded-2xl p-6 flex flex-col justify-between relative shadow-lg shadow-primary/10 transition-all duration-300 hover:-translate-y-2.5 hover:shadow-2xl hover:shadow-primary/25 hover:border-primary overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-orange-400 to-primary" />
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground font-mono text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-md">
                     MOST POPULAR
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-foreground">Pro Athlete</h3>
+                    <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">Pro Athlete</h3>
                     <p className="text-xs text-muted-foreground mt-1">For dedicated players</p>
                     <div className="flex items-baseline gap-1 mt-4 mb-6">
                       <span className="text-4xl font-extrabold text-foreground">₹199</span>
@@ -597,16 +588,17 @@ export default function Home() {
                     </ul>
                   </div>
                   <Link href="/auth" className="mt-8">
-                    <Button className="w-full h-11 rounded-xl font-semibold shadow-none">Go Pro</Button>
+                    <Button className="w-full h-11 rounded-xl font-semibold shadow-md shadow-primary/20 group-hover:scale-[1.02] transition-transform">Go Pro</Button>
                   </Link>
                 </div>
               </FadeIn>
 
               {/* Card 3: Plus */}
               <FadeIn delay={0.15} className="flex">
-                <div className="flex-1 bg-card border border-border/60 rounded-2xl p-6 flex flex-col justify-between transition-all">
+                <div className="group flex-1 bg-card/65 backdrop-blur-md border border-border/60 rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/40 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div>
-                    <h3 className="text-lg font-bold text-foreground">Plus (Coaches)</h3>
+                    <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">Plus (Coaches)</h3>
                     <p className="text-xs text-muted-foreground mt-1">For clubs & academies</p>
                     <div className="flex items-baseline gap-1 mt-4 mb-6">
                       <span className="text-4xl font-extrabold text-foreground">₹3,999</span>
@@ -621,16 +613,17 @@ export default function Home() {
                     </ul>
                   </div>
                   <Link href="/auth" className="mt-8">
-                    <Button variant="outline" className="w-full h-11 rounded-xl font-semibold shadow-none">Get Plus</Button>
+                    <Button variant="outline" className="w-full h-11 rounded-xl font-semibold shadow-none group-hover:border-primary/50 group-hover:bg-primary/5 transition-all">Get Plus</Button>
                   </Link>
                 </div>
               </FadeIn>
 
               {/* Card 4: Enterprise */}
               <FadeIn delay={0.2} className="flex">
-                <div className="flex-1 bg-card border border-border/60 rounded-2xl p-6 flex flex-col justify-between transition-all">
+                <div className="group flex-1 bg-card/65 backdrop-blur-md border border-border/60 rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/40 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div>
-                    <h3 className="text-lg font-bold text-foreground">Enterprise</h3>
+                    <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">Enterprise</h3>
                     <p className="text-xs text-muted-foreground mt-1">For professional institutions</p>
                     <div className="flex items-baseline gap-1 mt-4 mb-6">
                       <span className="text-4xl font-extrabold text-foreground">Custom</span>
@@ -646,7 +639,7 @@ export default function Home() {
                   </div>
                   <button 
                     onClick={() => setIsContactOpen(true)}
-                    className="mt-8 w-full h-11 rounded-xl font-semibold border border-border bg-transparent text-sm text-foreground/80 hover:bg-muted/40 transition-colors"
+                    className="mt-8 w-full h-11 rounded-xl font-semibold border border-border bg-transparent text-sm text-foreground/80 hover:bg-primary/10 hover:border-primary/40 hover:text-foreground transition-all"
                   >
                     Contact Biomechanics Team
                   </button>
@@ -837,14 +830,15 @@ function HowItWorksCard({
   step: number;
 }) {
   return (
-    <div className="group relative bg-card border border-border/60 rounded-2xl p-6 transition-all duration-300 cursor-default">
-      <div className="absolute top-4 right-4 text-[10px] font-bold font-mono text-muted-foreground/30">
+    <div className="group relative bg-card/60 backdrop-blur-md border border-border/60 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/50 cursor-default overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className="absolute top-4 right-4 text-[10px] font-bold font-mono text-muted-foreground/30 group-hover:text-primary/70 transition-colors">
         {String(step).padStart(2, "0")}
       </div>
-      <div className="w-12 h-12 rounded-xl bg-muted/80 flex items-center justify-center mb-5 text-muted-foreground group-hover:text-primary transition-colors">
+      <div className="w-12 h-12 rounded-xl bg-muted/80 flex items-center justify-center mb-5 text-muted-foreground group-hover:text-primary group-hover:scale-110 group-hover:bg-primary/10 transition-all duration-300">
         {icon}
       </div>
-      <h3 className="text-base font-bold tracking-tight text-foreground mb-2">{title}</h3>
+      <h3 className="text-base font-bold tracking-tight text-foreground mb-2 group-hover:text-primary transition-colors">{title}</h3>
       <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
     </div>
   );
@@ -852,10 +846,10 @@ function HowItWorksCard({
 
 function DemoCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-sm transition-all duration-300">
+    <div className="group bg-card/60 backdrop-blur-md border border-border/60 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-primary/10 hover:border-primary/40 overflow-hidden relative">
       <div className="flex items-center gap-2 mb-1 text-muted-foreground">
         {icon}
-        <h3 className="text-sm font-bold tracking-tight text-foreground">{title}</h3>
+        <h3 className="text-sm font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">{title}</h3>
       </div>
       {children}
     </div>

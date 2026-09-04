@@ -191,7 +191,7 @@ export default function Auth() {
 
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center relative overflow-hidden px-4 py-12">
+    <div className="min-h-screen bg-transparent text-foreground flex items-center justify-center relative overflow-hidden px-4 py-12">
       {/* Decorative Blur Backgrounds */}
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary/15 rounded-full blur-[110px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[110px] pointer-events-none" />
@@ -212,7 +212,8 @@ export default function Auth() {
         </div>
 
         {/* Auth Card */}
-        <Card className="border-border bg-card/60 backdrop-blur-xl shadow-2xl relative">
+        <Card className="border-border/80 bg-card/40 backdrop-blur-2xl shadow-2xl relative overflow-hidden ring-1 ring-white/10">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/20 via-primary to-primary/20" />
           <CardHeader className="pb-4">
             <div className="grid grid-cols-2 bg-background/80 p-1 rounded-xl border border-border mb-4">
               <button
@@ -246,7 +247,7 @@ export default function Auth() {
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as any)}
-                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all [&>option]:bg-card"
+                className="w-full bg-muted/40 border border-border/80 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all [&>option]:bg-card"
               >
                 <option value="athlete">Athlete Portal</option>
                 <option value="coach">Coach Portal</option>
@@ -280,7 +281,7 @@ export default function Auth() {
                   placeholder="e.g. virat_kohli"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 placeholder:text-muted-foreground/45 transition-all"
+                  className="w-full bg-muted/40 border border-border/80 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 placeholder:text-muted-foreground/45 transition-all"
                   required
                 />
               </div>
@@ -295,7 +296,7 @@ export default function Auth() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 placeholder:text-muted-foreground/45 transition-all"
+                  className="w-full bg-muted/40 border border-border/80 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 placeholder:text-muted-foreground/45 transition-all"
                   required
                 />
               </div>
@@ -319,7 +320,7 @@ export default function Auth() {
                         placeholder="athlete@domain.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 placeholder:text-muted-foreground/45 transition-all"
+                        className="w-full bg-muted/40 border border-border/80 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 placeholder:text-muted-foreground/45 transition-all"
                         required={activeTab === "signup"}
                       />
                     </div>
@@ -334,7 +335,7 @@ export default function Auth() {
                         placeholder="e.g. National Cricket Academy"
                         value={sportsAcademy}
                         onChange={(e) => setSportsAcademy(e.target.value)}
-                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 placeholder:text-muted-foreground/45 transition-all"
+                        className="w-full bg-muted/40 border border-border/80 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 placeholder:text-muted-foreground/45 transition-all"
                       />
                     </div>
                     

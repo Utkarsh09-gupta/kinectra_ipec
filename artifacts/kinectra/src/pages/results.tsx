@@ -1035,7 +1035,7 @@ export default function Results() {
   const breakdownLabels = getBreakdownLabels();
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-transparent">
       <Navbar />
       
       <main className="flex-1 container px-4 py-8 md:py-12 max-w-5xl mx-auto">
