@@ -252,6 +252,35 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
   );
 }
 
+// ─── Glowing Mouse Particle Trail Component ─────────────────────────
+function MouseGlowTrail() {
+  const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
+
+  return (
+    <div
+      onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
+      className="fixed inset-0 pointer-events-none z-30 overflow-hidden"
+    >
+      <motion.div
+        className="absolute w-80 h-80 rounded-full bg-primary/15 blur-[90px] pointer-events-none"
+        animate={{
+          x: mousePos.x - 160,
+          y: mousePos.y - 160,
+        }}
+        transition={{ type: "spring", damping: 25, stiffness: 200, mass: 0.5 }}
+      />
+      <motion.div
+        className="absolute w-12 h-12 rounded-full border border-primary/40 pointer-events-none"
+        animate={{
+          x: mousePos.x - 24,
+          y: mousePos.y - 24,
+        }}
+        transition={{ type: "spring", damping: 30, stiffness: 350 }}
+      />
+    </div>
+  );
+}
+
 // ─── Home page ─────────────────────────────────────────────────────
 export default function Home() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
@@ -267,7 +296,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-transparent">
+    <div className="min-h-screen flex flex-col bg-transparent relative">
+      <MouseGlowTrail />
       <Navbar />
 
       <main className="flex-1">
