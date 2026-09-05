@@ -117,20 +117,20 @@ function App() {
                 className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none"
                 style={{
                   backgroundImage: `url('/sports_hero_background.png')`,
-                  filter: "brightness(0.3) contrast(1.2) saturate(1.1)",
+                  filter: "brightness(0.65) contrast(1.15) saturate(1.2)",
                 }}
               />
 
               {/* Layer 2: Global Radial Dot Grid & Vignette Overlay */}
               <div
-                className="fixed inset-0 z-0 opacity-15 pointer-events-none"
+                className="fixed inset-0 z-0 opacity-10 pointer-events-none"
                 style={{
                   backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
-                  backgroundSize: "32px 32px",
+                  backgroundSize: "36px 36px",
                   backgroundPosition: "0 0",
                 }}
               />
-              <div className="fixed inset-0 z-0 bg-gradient-to-b from-background/80 via-background/60 to-background/90 pointer-events-none" />
+              <div className="fixed inset-0 z-0 bg-gradient-to-b from-background/60 via-background/40 to-background/75 pointer-events-none" />
 
               {/* Page Content */}
               <div className="relative z-10">
