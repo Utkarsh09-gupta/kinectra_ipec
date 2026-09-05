@@ -353,24 +353,41 @@ export default function Home() {
               </motion.div>
             </div>
 
-            {/* Right: animated skeleton */}
+            {/* Right: animated 3D perspective skeleton */}
             <motion.div
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="relative"
+              className="relative perspective-1000"
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                e.currentTarget.style.transform = `rotateY(${x / 25}deg) rotateX(${-y / 25}deg) scale(1.02)`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "rotateY(0deg) rotateX(0deg) scale(1)";
+              }}
+              style={{
+                transformStyle: "preserve-3d",
+                transition: "transform 0.15s ease-out",
+              }}
             >
-              <div className="relative rounded-2xl bg-card border border-border/60 p-6 shadow-sm overflow-hidden">
-                <div className="absolute top-3 right-3 text-[9px] font-mono text-muted-foreground/60 uppercase tracking-widest font-semibold">
-                  POSE DETECTION
+              <div 
+                className="relative rounded-2xl bg-card/75 backdrop-blur-xl border border-primary/40 p-6 shadow-2xl overflow-hidden ring-1 ring-primary/20"
+                style={{ transform: "translateZ(30px)", transformStyle: "preserve-3d" }}
+              >
+                <div className="absolute top-3 right-3 text-[9px] font-mono text-primary uppercase tracking-widest font-semibold flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+                  3D POSE TELEMETRY
                 </div>
 
-                <div className="mt-6">
+                <div className="mt-6" style={{ transform: "translateZ(40px)" }}>
                   <CricketVisual />
                 </div>
 
                 {/* Bottom status bar */}
-                <div className="mt-4 flex items-center justify-between text-[10px] font-mono text-muted-foreground/80 font-semibold">
+                <div className="mt-4 flex items-center justify-between text-[10px] font-mono text-muted-foreground/80 font-semibold" style={{ transform: "translateZ(20px)" }}>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     TRACKING ACTIVE
@@ -379,12 +396,13 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Score floating card */}
+              {/* 3D Floating Score Card */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 1.5, duration: 0.5 }}
-                className="absolute -right-4 top-16 bg-card rounded-xl shadow-sm border border-border/60 px-4 py-3 min-w-[140px] hidden lg:block"
+                className="absolute -right-4 top-16 bg-card/90 backdrop-blur-xl rounded-xl shadow-2xl border border-primary/50 px-4 py-3 min-w-[140px] hidden lg:block ring-1 ring-white/10"
+                style={{ transform: "translateZ(60px) rotateY(-5deg)" }}
               >
                 <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider mb-1">Technique Score</p>
                 <p className="text-3xl font-bold text-foreground font-mono">87<span className="text-sm text-muted-foreground font-normal">/100</span></p>
